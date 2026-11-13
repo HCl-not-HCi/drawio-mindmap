@@ -1,0 +1,11 @@
+node_modules/
+dist/
+# packages/plugin/dist must exist before draw.io bind-mounts it (else Docker creates it root-owned)
+!packages/plugin/dist/
+packages/plugin/dist/*
+!packages/plugin/dist/.gitkeep
+coverage/
+test-results/
+playwright-report/
+.DS_Store
+*.log

@@ -1,0 +1,8 @@
+{
+  "name": "@drawio-mindmap/mcp-server",
+  "version": "0.0.0",
+  "private": true,
+  "description": "MCP server for live LLM control of the open mindmap (placeholder until M6)",
+  "license": "Apache-2.0",
+  "type": "module"
+}

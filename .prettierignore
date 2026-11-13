@@ -1,0 +1,8 @@
+dist/
+coverage/
+test-results/
+playwright-report/
+package-lock.json
+LICENSE
+docs/PLAN.md
+docker/drawio/PostConfig.js
