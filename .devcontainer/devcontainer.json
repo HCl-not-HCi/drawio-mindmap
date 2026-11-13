@@ -1,0 +1,35 @@
+{
+  "name": "drawio-mindmap",
+  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
+  "service": "dev",
+  "runServices": ["drawio", "dev"],
+  "workspaceFolder": "/workspaces/drawio-mindmap",
+  "shutdownAction": "stopCompose",
+  "remoteUser": "node",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  // 8080 is published by the drawio service itself; 47100 is the local bridge (spike/M6).
+  "forwardPorts": [47100],
+  "portsAttributes": {
+    "8080": { "label": "draw.io", "onAutoForward": "ignore" },
+    "47100": { "label": "mindmap bridge", "onAutoForward": "silent" }
+  },
+  "postCreateCommand": "npm ci && npx playwright install --with-deps chromium",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "vitest.explorer",
+        "ms-playwright.playwright",
+        "editorconfig.editorconfig"
+      ],
+      "settings": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "eslint.useFlatConfig": true
+      }
+    }
+  }
+}

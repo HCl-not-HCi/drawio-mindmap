@@ -1,0 +1,15 @@
+# Extends ../docker-compose.yml with the dev container itself.
+# Paths are relative to the first compose file (the repo root).
+services:
+  dev:
+    image: mcr.microsoft.com/devcontainers/javascript-node:26-bookworm
+    command: sleep infinity
+    volumes:
+      - .:/workspaces/drawio-mindmap:cached
+    # Share draw.io's network namespace: inside the dev container, draw.io is on
+    # localhost:8080 and the browser in Playwright sees the same 127.0.0.1 as the
+    # WebSocket/MCP server, exactly like on a host machine.
+    network_mode: service:drawio
+    depends_on:
+      drawio:
+        condition: service_healthy

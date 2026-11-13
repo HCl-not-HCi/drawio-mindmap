@@ -1,0 +1,33 @@
+# Local draw.io for development and e2e tests.
+#   docker compose up -d drawio   → http://localhost:8080/?p=mindmap
+# The dev container (.devcontainer/) extends this file; see README.
+services:
+  drawio:
+    # Pinned on purpose. Bump only on its own branch (docs/PLAN.md §5).
+    image: jgraph/drawio:32.6.10
+    ports:
+      - '8080:8080'
+    environment:
+      # Default CSP of the image, plus connect-src for the local MCP bridge (M0 spike, M6).
+      # Quotes must stay escaped as \' because the entrypoint embeds the value in a JS string.
+      DRAWIO_CSP_HEADER: >-
+        default-src \'self\'; script-src \'self\' https://storage.googleapis.com
+        https://apis.google.com https://docs.google.com https://code.jquery.com \'unsafe-inline\';
+        connect-src \'self\' ws://127.0.0.1:47100 ws://localhost:47100 https://*.dropboxapi.com
+        https://api.trello.com https://api.github.com https://raw.githubusercontent.com
+        https://*.googleapis.com https://*.googleusercontent.com https://graph.microsoft.com
+        https://*.1drv.com https://*.sharepoint.com https://gitlab.com https://*.google.com
+        https://fonts.gstatic.com https://fonts.googleapis.com; img-src * data:; media-src * data:;
+        font-src * about:; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com;
+        frame-src \'self\' https://*.google.com;
+    volumes:
+      # Whole folder, so rebuilds that replace the file are picked up.
+      - ./packages/plugin/dist:/usr/local/tomcat/webapps/draw/plugins/custom:ro
+      # Registers the plugin as "mindmap" (load with ?p=mindmap); see docs/decisions.md D2.
+      # Single-file mount: restart the container after editing it.
+      - ./docker/drawio/PostConfig.js:/usr/local/tomcat/webapps/draw/js/PostConfig.js:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fs http://localhost:8080/ > /dev/null || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 30
