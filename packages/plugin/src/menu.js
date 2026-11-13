@@ -1,21 +1,31 @@
-// Actions and the Extras → Mindmap submenu. All draw.io UI wiring lives here.
+// Actions and the Extras → Mindmap submenu. All draw.io menu wiring lives here.
 import { checkWebSocket } from './spike/ws-check.js';
 import { log } from './log.js';
 
-/* global mxResources */
+/* global mxResources, mxClient */
 
+export const ACTION_NEW = 'mindmapNew';
 export const ACTION_ABOUT = 'mindmapAbout';
 export const ACTION_WS_CHECK = 'mindmapWsCheck';
 export const MENU_NAME = 'mindmap';
 
-export function registerActions(ui, { version, debug }) {
+const NEW_SHORTCUT_LABEL = mxClient.IS_MAC ? '⌥⇧M' : 'Alt+Shift+M';
+
+/**
+ * @param {object} ui
+ * @param {{version: string, debug: object, newMindmap: () => void}} opts
+ */
+export function registerActions(ui, { version, debug, newMindmap }) {
   mxResources.parse(
     [
       `${MENU_NAME}=Mindmap`,
+      `${ACTION_NEW}=New Mindmap`,
       `${ACTION_ABOUT}=About Mindmap...`,
       `${ACTION_WS_CHECK}=Test WebSocket connection...`,
     ].join('\n'),
   );
+
+  ui.actions.addAction(ACTION_NEW, newMindmap, null, null, NEW_SHORTCUT_LABEL);
 
   ui.actions.addAction(ACTION_ABOUT, () => {
     ui.alert(`draw.io Mindmap plugin ${version}`);
@@ -33,7 +43,7 @@ export function registerMenus(ui) {
   ui.menus.put(
     MENU_NAME,
     new window.Menu((menu, parent) => {
-      ui.menus.addMenuItems(menu, [ACTION_ABOUT, '-', ACTION_WS_CHECK], parent);
+      ui.menus.addMenuItems(menu, [ACTION_NEW, '-', ACTION_ABOUT, ACTION_WS_CHECK], parent);
     }),
   );
 
