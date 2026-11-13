@@ -2,7 +2,7 @@
 
 A draw.io plugin for fast, keyboard-driven mind mapping. Mindmaps stay normal draw.io diagrams that open and render without the plugin.
 
-Status: **M0 (setup)**. The plugin adds an _Extras → Mindmap_ menu; mind map features start in M1. See [docs/PLAN.md](docs/PLAN.md) for the plan and [docs/decisions.md](docs/decisions.md) for decisions made along the way.
+Status: **M1 (core editing)**. Mind maps can be created and edited with the keyboard. There is no automatic layout yet (M2). See [docs/PLAN.md](docs/PLAN.md) for the plan and [docs/decisions.md](docs/decisions.md) for decisions made along the way.
 
 ## Pinned versions
 
@@ -11,6 +11,24 @@ Status: **M0 (setup)**. The plugin adds an _Extras → Mindmap_ menu; mind map f
 | draw.io | 32.6.10 (`jgraph/drawio`) | `docker-compose.yml`           |
 | Node.js | 26 LTS (26.13.1)          | `.nvmrc`, `.devcontainer/`     |
 | Desktop | dropped as a target, D5   | [decisions](docs/decisions.md) |
+
+## Using the plugin
+
+| Key                       | Action                                                        |
+| ------------------------- | ------------------------------------------------------------- |
+| Alt+Shift+M (⌥⇧M)         | New mindmap at the centre of the view (also Extras → Mindmap) |
+| Tab                       | Add a child topic                                             |
+| Enter                     | Add a sibling below (on the central topic: add a child)       |
+| Delete / Backspace        | Delete the topic and its subtree                              |
+| F2 or start typing        | Edit the label                                                |
+| Enter / Esc while editing | Finish editing (Shift+Enter: line break)                      |
+| Tab while editing         | Finish editing and add a child                                |
+
+The keys only change behavior when mindmap topics are selected; everywhere else draw.io works as usual. Every action is one undo step. Details: [D7](docs/decisions.md).
+
+From the browser console, `window.mindmap` offers the same commands by topic id (see [D8](docs/decisions.md)), e.g. `mindmap.addChild(mindmap.listMindmaps()[0].id, 'Idea')`.
+
+`samples/basic.drawio` is a small map for manual testing (File → Open from → Device).
 
 ## Development in the dev container (recommended)
 

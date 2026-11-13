@@ -47,3 +47,27 @@ So the plan's secondary target ("Desktop started with `--enable-plugins`") is no
 ## D6 – Dev container shares draw.io's network (M0)
 
 The VS Code dev container (`.devcontainer/`) runs Node 26 next to the `drawio` service from `docker-compose.yml`, with `network_mode: service:drawio`. Inside the container, draw.io is on `localhost:8080`, and the Playwright browser, the WebSocket echo server and later the MCP server share one `127.0.0.1`. This matches a normal host setup, so tests use the same URLs everywhere (dev container, CI, host).
+
+## D7 – Keyboard behavior details (M1)
+
+Refines the MVP keyboard list in PLAN §2:
+
+- **New mindmap: Alt+Shift+M** (⌥⇧M on macOS). Ctrl+M and Ctrl+Shift+M are taken by draw.io (Edit Data, Edit Geometry); Alt+Shift+M is free.
+- **Enter while editing a topic label finishes editing**; Shift+Enter inserts a line break. A second Enter then adds a sibling. Esc also finishes editing and keeps the topic selected (draw.io's default: Esc applies the text).
+- **Tab while editing a topic label** finishes editing and adds a child right away, so a branch can be typed without leaving the keyboard.
+- New topics get a default label (`Central Topic`, `Topic`). Editing starts with the text selected, so typing replaces it.
+- **Delete/Backspace** with several topics selected deletes all their subtrees in one undo step. Afterwards the parent of the first deleted topic is selected.
+- The shortcuts apply only when every selected cell is a topic and no label is being edited (except Tab and Enter above). Mixed selections and normal shapes keep draw.io's behavior; e2e tests cover this.
+- **Hook points:** draw.io handles Tab in `EditorUi.onKeyDown` and consumes it before the key handler sees it, so the plugin wraps both `ui.onKeyDown` and `ui.keyHandler.getFunction`. Enter-to-finish wraps `graph.cellEditor.isStopEditingEvent`. All three hooks are in `src/keys.js`.
+
+## D8 – Public API and labels (M1)
+
+- `window.mindmap`: `createMindmap({label, x, y})`, `addChild(parentId, label)`, `addSibling(topicId, label)`, `deleteTopic(id)`, `deleteTopics(ids)`, `renameTopic(id, label)`, `getMindmap(topicId?)` (outline `{id, label, children}`), `listMindmaps()`, `getSelectedTopics()`, `selectTopic(id)`, `version`.
+- Beyond the plan: `deleteTopics` (multi-selection delete), and `getSelectedTopics` / `selectTopic` (needed by M6's `get_selection` and by tests). Selection changes are not undo steps.
+- Unknown ids throw `Error("Unknown topic: <id>")` before anything changes.
+- Labels are draw.io HTML labels (`html=1`). The API takes and returns **plain text**; `src/text.js` escapes text and turns newlines into `<br>`, and reads labels back through an inert `DOMParser`.
+- `?mindmapDebug=1` (or a dev build) exposes `window.mindmapDebug` (`ui`, `graph`, `commands`). The e2e tests use it on the production build.
+
+## D9 – Placement until the layout exists (M1)
+
+Without M2's layout, a new child goes to the right of its parent, below the lowest topic of the last sibling subtree. A new sibling goes below the subtree of the topic it follows. Siblings inserted in the middle can overlap topics further down; M2 replaces this placement.
