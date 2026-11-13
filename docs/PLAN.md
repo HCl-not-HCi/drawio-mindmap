@@ -10,7 +10,7 @@ Build a draw.io plugin that makes mind mapping fast and keyboard-driven, similar
 
 - **Self-hosted draw.io (Docker image `jgraph/drawio`)**: primary development and deployment target.
 - **draw.io Desktop** started with `--enable-plugins`: secondary target, used for personal use and pre-release testing.
-  > **M0 finding (open):** Desktop removed external plugin support in 31.1.4; `--enable-plugins` is ignored. See [decisions.md D5](decisions.md#d5--drawio-desktop-no-longer-supports-external-plugins-m0-open).
+  > **Dropped (M0, decided):** Desktop removed external plugin support in 31.1.4; `--enable-plugins` is ignored. Docker is the only target. See [decisions.md D5](decisions.md#d5--drop-drawio-desktop-as-a-target-m0-decided-2026-11-13).
 - **Embedded draw.io** (own app, iframe embed mode): not a target (decided).
 
 **Non-goals**
@@ -269,13 +269,13 @@ Estimates assume one developer working part-time and are rough; M2 carries the m
 
 | Milestone | Content | Done when | Estimate |
 | --- | --- | --- | --- |
-| M0 – Setup | Repo, esbuild, Docker Compose, lint, CI skeleton, "hello" plugin that adds a menu entry; spike: plugin opens a WebSocket to localhost on Docker and Desktop (CSP check) | Plugin loads in Docker and Desktop; WebSocket spike answered | 1–2 days |
+| M0 – Setup | Repo, esbuild, Docker Compose, lint, CI skeleton, "hello" plugin that adds a menu entry; spike: plugin opens a WebSocket to localhost on Docker and Desktop (CSP check) | Plugin loads in Docker (Desktop dropped, D5); WebSocket spike answered | 1–2 days |
 | M1 – Core editing | Data model, new mindmap, add child/sibling, delete subtree, single undo steps, commands callable from code (window.mindmap.\*) | Topics can be added via keyboard (no layout yet) | 3–5 days |
 | M2 – Layout | Two-sided tidy-tree layout, automatic re-layout, curved connectors | Maps of any size stay tidy while typing | 1–2 weeks |
 | M3 – MVP release (v0.1) | Arrow-key navigation, manual checklist, docs, first release | v0.1 tagged and used for real notes | 3–5 days |
 | M4 – v1.0 | Branch colors, collapse/expand, drag to reparent, side control, level styles, convert selection | v1.0 tagged | 2–3 weeks |
 | M5 – Import/export | Markdown, OPML, FreeMind; paste outline | Round-trip tests pass | 1–2 weeks |
-| M6 – Live LLM control | MCP server with topic-level tools, WebSocket bridge in the plugin, toggle + status indicator, token auth | Claude adds and edits topics in the open window on Docker and Desktop | 1–2 weeks |
+| M6 – Live LLM control | MCP server with topic-level tools, WebSocket bridge in the plugin, toggle + status indicator, token auth | Claude adds and edits topics in the open window on Docker | 1–2 weeks |
 
 ## 8. Risks and open questions
 

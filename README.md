@@ -10,7 +10,7 @@ Status: **M0 (setup)**. The plugin adds an _Extras → Mindmap_ menu; mind map f
 | ------- | ------------------------- | ------------------------------ |
 | draw.io | 32.6.10 (`jgraph/drawio`) | `docker-compose.yml`           |
 | Node.js | 26 LTS (26.13.1)          | `.nvmrc`, `.devcontainer/`     |
-| Desktop | not supported, see D5     | [decisions](docs/decisions.md) |
+| Desktop | dropped as a target, D5   | [decisions](docs/decisions.md) |
 
 ## Development in the dev container (recommended)
 

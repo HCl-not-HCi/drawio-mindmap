@@ -33,7 +33,7 @@ draw.io skips plugin loading entirely when `offline=1` is set, so the URL in PLA
 - Verified by `test/e2e/websocket-spike.spec.js`: echo on port 47100 succeeds; port 47101 is refused with a CSP violation.
 - **Consequence for M6:** anyone self-hosting draw.io for live LLM control must add the bridge URL to `DRAWIO_CSP_HEADER`. Document this in the README in M6.
 
-## D5 – draw.io Desktop no longer supports external plugins (M0, OPEN)
+## D5 – Drop draw.io Desktop as a target (M0, decided 2026-11-13)
 
 Findings from the Desktop source (`app.asar` of 32.4.1, confirmed by the changelog):
 
@@ -42,7 +42,7 @@ Findings from the Desktop source (`app.asar` of 32.4.1, confirmed by the changel
 
 So the plan's secondary target ("Desktop started with `--enable-plugins`") is not possible with any current Desktop release. Only Desktop ≤ 31.1.3 could load the plugin, which would mean staying on an outdated, unpatched Electron app.
 
-**Status:** waiting for a decision. Options: (a) drop Desktop as a target and use the self-hosted web app only (it can be installed as a browser app/PWA for a desktop-like window); (b) keep an old Desktop release (≤ 31.1.3) for personal use only, no support in tests or releases. Until decided, M0 is verified on Docker only.
+**Decision:** Desktop is dropped as a target. The self-hosted web app (Docker) is the only target; it can be installed as a browser app/PWA for a desktop-like window. The manual release checklist, M0 and M6 are checked on Docker only.
 
 ## D6 – Dev container shares draw.io's network (M0)
 
