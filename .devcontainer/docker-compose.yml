@@ -4,6 +4,8 @@ services:
   dev:
     image: mcr.microsoft.com/devcontainers/javascript-node:26-bookworm
     command: sleep infinity
+    # Reaps exited processes (e.g. Playwright's headless browsers); sleep as PID 1 doesn't.
+    init: true
     volumes:
       - .:/workspaces/drawio-mindmap:cached
     # Share draw.io's network namespace: inside the dev container, draw.io is on
