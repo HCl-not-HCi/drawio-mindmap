@@ -10,6 +10,7 @@ Build a draw.io plugin that makes mind mapping fast and keyboard-driven, similar
 
 - **Self-hosted draw.io (Docker image `jgraph/drawio`)**: primary development and deployment target.
 - **draw.io Desktop** started with `--enable-plugins`: secondary target, used for personal use and pre-release testing.
+  > **M0 finding (open):** Desktop removed external plugin support in 31.1.4; `--enable-plugins` is ignored. See [decisions.md D5](decisions.md#d5--drawio-desktop-no-longer-supports-external-plugins-m0-open).
 - **Embedded draw.io** (own app, iframe embed mode): not a target (decided).
 
 **Non-goals**
@@ -186,8 +187,8 @@ services:
       - ./packages/plugin/dist:/usr/local/tomcat/webapps/draw/plugins/custom:ro
 ```
 
-- Start with `docker compose up -d`, open `http://localhost:8080/?offline=1`.
-- One-time setup per browser profile: Extras → Plugins → Add → Custom → `plugins/custom/mindmap.js` → Apply, then reload.
+- Start with `docker compose up -d`, open `http://localhost:8080/?p=mindmap`.
+  > **Changed in M0:** `?offline=1` disables plugins, and the Plugins dialog cannot add custom plugins in 32.6.10. The plugin is registered via a mounted `PostConfig.js` and loaded with `?p=mindmap`; no per-browser setup. See [decisions.md D2/D3](decisions.md). The dev setup runs in a VS Code dev container (D6).
 - Mount the whole `dist` folder rather than the single file, so rebuilds that replace the file are picked up.
 - Pin the image tag. Bump it deliberately (see section 5) so API changes in draw.io show up as a conscious upgrade, not a surprise.
 
