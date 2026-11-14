@@ -12,6 +12,8 @@ export const KEY_ROLE = 'mmRole';
 export const KEY_ORDER = 'mmOrder';
 export const KEY_EDGE = 'mmEdge';
 export const KEY_SIDE = 'mmSide';
+export const KEY_BRANCH = 'mmBranch'; // palette index of a first-level branch
+export const KEY_STYLE = 'mmStyle'; // signature of the managed styles applied last
 // Per-map layout options, stored on the root topic (decisions D17).
 export const KEY_LAYOUT = 'mmLayout';
 export const KEY_ROOT_GAP = 'mmRootGap';

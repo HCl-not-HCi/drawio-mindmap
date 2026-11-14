@@ -7,6 +7,8 @@ import { DEFAULT_SPACING, layoutTree } from './layout.js';
 import {
   buildIndex,
   getChildren,
+  KEY_BRANCH,
+  KEY_STYLE,
   getLayoutOptions,
   getSide,
   isRootStyle,
@@ -14,7 +16,14 @@ import {
   toLayoutTree,
 } from './model.js';
 import { getStyleValue, setStyleValues } from './style.js';
-import { EDGE_STYLE_VALUES, SIZING } from './styles.js';
+import {
+  assignBranches,
+  EDGE_STYLE_VALUES,
+  edgeStyleValues,
+  SIZING,
+  styleSignature,
+  topicStyleValues,
+} from './styles.js';
 
 const EPS = 0.5;
 const differs = (a, b) => Math.abs(a - b) > EPS;
@@ -88,14 +97,38 @@ export function applyLayout(graph, defaults = { mode: 'balanced', spacing: DEFAU
     }
   };
 
+  // Applies managed styles when a topic's (or edge's) signature changed: on creation and
+  // when it moves to another level or branch. Manual tweaks in between are kept (D18).
+  const restyle = (cell, signature, values) => {
+    if (getStyleValue(model.getStyle(cell), KEY_STYLE) === signature) return;
+    setStyle(cell, { ...values, [KEY_STYLE]: signature });
+  };
+
+  const applyStyles = (rootId) => {
+    restyle(model.getCell(rootId), styleSignature(0, 0), topicStyleValues(0, 0));
+    const branches = getChildren(index, rootId);
+    const indexes = assignBranches(
+      branches.map((id) => {
+        const n = Number.parseInt(getStyleValue(index.topics.get(id).style, KEY_BRANCH), 10);
+        return Number.isInteger(n) ? n : null;
+      }),
+    );
+    const seen = new Set([rootId]);
+    const visit = (id, level, branch) => {
+      if (seen.has(id)) return;
+      seen.add(id);
+      const cell = model.getCell(id);
+      if (level === 1) setStyle(cell, { [KEY_BRANCH]: branch });
+      restyle(cell, styleSignature(level, branch), topicStyleValues(level, branch));
+      const edge = model.getCell(index.parentOf.get(id).edgeId);
+      restyle(edge, styleSignature(level, branch), edgeStyleValues(level, branch));
+      for (const child of getChildren(index, id)) visit(child, level + 1, branch);
+    };
+    branches.forEach((id, i) => visit(id, 1, indexes[i]));
+  };
+
   model.beginUpdate();
   try {
-    const sizes = new Map();
-    for (const [id, topic] of index.topics) {
-      const size = fittedSize(graph, model.getCell(id));
-      sizes.set(id, size ?? { width: topic.geometry.width, height: topic.geometry.height });
-    }
-
     // draw.io tree folding: the +/- toggle only on topics that have children. A topic that
     // lost its last child while collapsed is expanded again.
     for (const id of index.topics.keys()) {
@@ -106,6 +139,15 @@ export function applyLayout(graph, defaults = { mode: 'balanced', spacing: DEFAU
         model.setCollapsed(cell, false);
         changed++;
       }
+    }
+
+    // Level styles and branch colors, before measuring (font sizes affect topic sizes).
+    for (const rootId of index.roots) applyStyles(rootId);
+
+    const sizes = new Map();
+    for (const [id, topic] of index.topics) {
+      const size = fittedSize(graph, model.getCell(id));
+      sizes.set(id, size ?? { width: topic.geometry.width, height: topic.geometry.height });
     }
 
     for (const rootId of index.roots) {
