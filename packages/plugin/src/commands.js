@@ -3,6 +3,7 @@
 // public window.mindmap API and (from M6) the LLM bridge all go through these.
 import { snapshot } from './graph-adapter.js';
 import { chooseSide } from './layout.js';
+import { DIRECTIONS, navigate } from './navigation.js';
 import {
   buildIndex,
   getParent,
@@ -152,6 +153,12 @@ export function createCommands(graph) {
     listMindmaps() {
       const idx = index();
       return idx.roots.map((id) => ({ id, label: idx.topics.get(id).label }));
+    },
+
+    /** Neighbouring topic in a direction ('left' | 'right' | 'up' | 'down'), or null. */
+    getAdjacentTopic(topicId, direction) {
+      if (!DIRECTIONS.includes(direction)) throw new Error(`Unknown direction: ${direction}`);
+      return navigate(index(), topicId, direction);
     },
 
     /** Ids of the selected topics (non-topic cells in the selection are ignored). */

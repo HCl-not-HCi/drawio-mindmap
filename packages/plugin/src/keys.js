@@ -6,6 +6,8 @@ import { log } from './log.js';
 
 export const KEY = { TAB: 9, ENTER: 13, BACKSPACE: 8, DELETE: 46, M: 77 };
 
+const ARROWS = { 37: 'left', 38: 'up', 39: 'right', 40: 'down' };
+
 export const NEW_MINDMAP_SHORTCUT = { keyCode: KEY.M, alt: true, shift: true };
 
 /** Selects the topic, scrolls it into view and starts editing its label. */
@@ -72,6 +74,17 @@ export function registerKeys(ui, commands, actions) {
 
     const ids = selectedTopicIds();
     if (ids == null) return null;
+
+    const direction = ARROWS[evt.keyCode];
+    if (direction != null) {
+      // Arrows select a neighbour instead of nudging the topic (the layout would undo
+      // that anyway). With nothing in that direction, the selection stays.
+      if (ids.length !== 1) return null;
+      return run(() => {
+        const next = commands.getAdjacentTopic(ids[0], direction);
+        if (next != null) commands.selectTopic(next);
+      });
+    }
 
     switch (evt.keyCode) {
       case KEY.TAB:
