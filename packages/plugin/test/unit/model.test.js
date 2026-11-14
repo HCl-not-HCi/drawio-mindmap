@@ -8,6 +8,7 @@ import {
   planAddChild,
   planAddSibling,
   PLACEMENT,
+  toLayoutTree,
   toOutline,
 } from '../../src/model.js';
 
@@ -202,5 +203,43 @@ describe('planAddSibling', () => {
 
   it('adds a child when called on the root', () => {
     expect(planAddSibling(index, 'r', SIZE)).toMatchObject({ parentId: 'r', order: 3 });
+  });
+});
+
+describe('toLayoutTree', () => {
+  it('builds layout input with sides on first-level topics and collapsed flags', () => {
+    const cells = snapshot([
+      { id: 'r', geometry: { width: 160, height: 60 } },
+      { id: 'a', parent: 'r', order: 0 },
+      { id: 'a1', parent: 'a', order: 0 },
+    ]);
+    cells.find((c) => c.id === 'a').style += 'mmSide=left;mmCollapsed=1;';
+    cells.find((c) => c.id === 'a1').style += 'mmSide=right;';
+    const tree = toLayoutTree(buildIndex(cells), 'r');
+    expect(tree).toEqual({
+      id: 'r',
+      width: 160,
+      height: 60,
+      side: null,
+      collapsed: false,
+      children: [
+        {
+          id: 'a',
+          width: 100,
+          height: 30,
+          side: 'left',
+          collapsed: true,
+          children: [
+            { id: 'a1', width: 100, height: 30, side: null, collapsed: false, children: [] },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('takes sizes from sizeOf when given', () => {
+    const index = buildIndex(snapshot([{ id: 'r' }, { id: 'a', parent: 'r' }]));
+    const tree = toLayoutTree(index, 'r', () => ({ width: 7, height: 9 }));
+    expect(tree.children[0]).toMatchObject({ width: 7, height: 9 });
   });
 });

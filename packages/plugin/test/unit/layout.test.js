@@ -20,7 +20,7 @@ const node = (id, children = [], extra = {}) => ({
 // Deterministic pseudo-random tree for property tests.
 function randomTree(seed, size) {
   let s = seed;
-  const rnd = () => ((s = (s * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
+  const rnd = () => (s = (s * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
   const nodes = [node('root', [], { width: 160, height: 60 })];
   for (let i = 1; i < size; i++) {
     const parent = nodes[Math.floor(rnd() * nodes.length)];
@@ -90,23 +90,23 @@ describe('layoutTree', () => {
     expect(Object.fromEntries(positions)).toMatchInlineSnapshot(`
       {
         "a": {
-          "x": 220,
+          "x": 230,
           "y": 15,
         },
         "a1": {
-          "x": 360,
+          "x": 380,
           "y": -6,
         },
         "a2": {
-          "x": 360,
+          "x": 380,
           "y": 36,
         },
         "b": {
-          "x": -160,
+          "x": -170,
           "y": -6,
         },
         "c": {
-          "x": -160,
+          "x": -170,
           "y": 36,
         },
         "root": {

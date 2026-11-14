@@ -10,6 +10,8 @@ export const KEY_MINDMAP = 'mindmap';
 export const KEY_ROLE = 'mmRole';
 export const KEY_ORDER = 'mmOrder';
 export const KEY_EDGE = 'mmEdge';
+export const KEY_SIDE = 'mmSide';
+export const KEY_COLLAPSED = 'mmCollapsed';
 export const ROLE_ROOT = 'root';
 export const ROLE_TOPIC = 'topic';
 
@@ -164,6 +166,37 @@ export function planAddSibling(index, topicId, size) {
     reorder,
     position: { x: g.x, y: subtreeBottom(index, topicId) + PLACEMENT.vGap },
   };
+}
+
+export function getSide(style) {
+  const side = getStyleValue(style, KEY_SIDE);
+  return side === 'left' || side === 'right' ? side : null;
+}
+
+/**
+ * Input tree for layout.js: {id, width, height, side, collapsed, children}.
+ * `sizeOf(id)` may override sizes (e.g. sizes fitted to labels); default: geometry.
+ * `side` is only set on first-level topics.
+ */
+export function toLayoutTree(index, rootId, sizeOf) {
+  const size = sizeOf ?? ((id) => index.topics.get(id).geometry);
+  const build = (id, depth, seen) => {
+    seen.add(id);
+    const { style } = index.topics.get(id);
+    const { width, height } = size(id);
+    return {
+      id,
+      width,
+      height,
+      side: depth === 1 ? getSide(style) : null,
+      collapsed: getStyleValue(style, KEY_COLLAPSED) === '1',
+      children: getChildren(index, id)
+        .filter((c) => !seen.has(c))
+        .map((c) => build(c, depth + 1, seen)),
+    };
+  };
+  requireTopic(index, rootId);
+  return build(rootId, 0, new Set());
 }
 
 /** Plain outline for display, tests and the LLM bridge: {id, label, children}. */

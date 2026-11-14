@@ -11,8 +11,8 @@
 // mirror image of the right side.
 
 export const DEFAULT_SPACING = {
-  rootGap: 60, // horizontal gap between the root and first-level topics
-  hGap: 40, // horizontal gap between a topic and its children
+  rootGap: 70, // horizontal gap between the root and first-level topics
+  hGap: 50, // horizontal gap between a topic and its children
   vGap: 12, // vertical gap between sibling subtrees
 };
 
