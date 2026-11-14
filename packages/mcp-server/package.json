@@ -1,8 +1,27 @@
 {
   "name": "@drawio-mindmap/mcp-server",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
-  "description": "MCP server for live LLM control of the open mindmap (placeholder until M6)",
+  "description": "MCP server for live LLM control of mindmaps open in draw.io",
   "license": "Apache-2.0",
-  "type": "module"
+  "type": "module",
+  "bin": {
+    "drawio-mindmap-mcp": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "ws": "8.23.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "@types/ws": "8.18.2",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
 }
