@@ -31,7 +31,7 @@ draw.io skips plugin loading entirely when `offline=1` is set, so the URL in PLA
 - The CSP is configurable with `DRAWIO_CSP_HEADER`. `docker-compose.yml` sets the image's default policy plus `ws://127.0.0.1:47100 ws://localhost:47100` in `connect-src`.
 - **Bridge port: 47100** (spike now, MCP bridge in M6). Other ports stay blocked.
 - Verified by `test/e2e/websocket-spike.spec.js`: echo on port 47100 succeeds; port 47101 is refused with a CSP violation.
-- **Consequence for M6:** anyone self-hosting draw.io for live LLM control must add the bridge URL to `DRAWIO_CSP_HEADER`. Document this in the README in M6.
+- **Consequence for M6:** anyone self-hosting draw.io for live LLM control must add the bridge URL to `DRAWIO_CSP_HEADER` (documented in the README). The spike itself was replaced by the bridge in M6 (D22).
 
 ## D5 – Drop draw.io Desktop as a target (M0, decided 2026-11-13)
 
@@ -157,3 +157,14 @@ The plan had an `mmCollapsed` style key. **Decision:** use draw.io's built-in tr
 - **Paste outline:** plain text pasted while exactly one topic is selected becomes child topics, one per line, nested by indentation. draw.io's own clipboard content (copied cells) and pastes without a selected topic are left to draw.io.
 - XML parsing uses the browser's `DOMParser` (unit tests inject jsdom's; jsdom is a dev dependency only, not bundled).
 - API: `importOutline(outline, {parentId, x, y})`, `importText(text, {format, filename, parentId})`, `exportMindmap(topicId, format)`.
+
+## D22 – Live LLM control (M6)
+
+- **Pieces:** `packages/mcp-server` (TypeScript, `@modelcontextprotocol/sdk`, stdio) runs a WebSocket bridge on `127.0.0.1:47100`; `src/bridge.js` in the plugin connects to it while the user has the toggle on. Requests run one at a time through the plugin's normal commands, each in its own transaction, so every tool call is **one undo step** with layout and colors.
+- **Tools:** `list_windows`, `get_mindmap`, `get_selection`, `add_topics` (several labels in one step), `rename_topic`, `move_topic`, `delete_topic`, `insert_outline` (Markdown; new map without `parent_id`). Inputs are validated with Zod before anything reaches draw.io; plugin errors come back as tool errors (`isError`). The LLM never sees shapes or coordinates.
+- **Security:** listens on `127.0.0.1` only; WebSocket upgrades must come from an allowed `Origin` (default `http://localhost:8080`, `MINDMAP_BRIDGE_ORIGINS`), which keeps other websites out; the first message must carry the token (compared in constant time) or the connection is closed with 4401. The token is generated once into `~/.config/drawio-mindmap/bridge-token` (mode 0600) and pasted into the plugin, which stores it in the browser's local storage. The toggle is **off on every page load** (not remembered) so access is always a conscious choice.
+- **Status:** the "LLM ●" indicator in the menubar shows off / connecting / connected / error with the reason as tooltip; clicking it toggles. The plugin reconnects with backoff (1–10 s) while on, except after a rejected token.
+- **Windows:** each tab registers with a random window id and its file title; with several windows connected, tools require `window_id`.
+- **Concurrency:** LLM changes and the user's typing are separate transactions. A label being edited is not interrupted; if the LLM deletes that topic, draw.io ends the edit.
+- **Tests:** contract tests run the MCP client and server in memory against a fake plugin socket (token, origin, validation, several windows, disconnect mid-call, timeout); the e2e test starts the real server over stdio and drives the open diagram, including one-step undo.
+- The M0 WebSocket spike (menu entry, `window.mindmap.spike`, echo server) is removed; the bridge e2e test keeps the CSP check (other ports stay blocked).

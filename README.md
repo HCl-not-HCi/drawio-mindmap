@@ -43,6 +43,33 @@ From the browser console, `window.mindmap` offers the same commands by topic id,
 
 `samples/basic.drawio` is a small map for manual testing (File → Open from → Device).
 
+## Live LLM control
+
+An LLM in any MCP client (Claude Code, Claude Desktop, ...) can work on the mindmap open in your draw.io window, live, while you keep editing. It reads the map as an outline and adds, renames, moves and deletes topics; every change is one undo step, laid out and colored like your own edits.
+
+1. Build once: `npm ci && npm run build` (creates `packages/mcp-server/dist/cli.js`).
+2. Register the MCP server in your client. It is a stdio server started with `node /path/to/drawio-mindmap/packages/mcp-server/dist/cli.js`:
+   - **Claude Code:** `claude mcp add drawio-mindmap -- node /path/to/drawio-mindmap/packages/mcp-server/dist/cli.js`
+   - **Claude Desktop** (`claude_desktop_config.json`):
+     ```json
+     {
+       "mcpServers": {
+         "drawio-mindmap": {
+           "command": "node",
+           "args": ["/path/to/drawio-mindmap/packages/mcp-server/dist/cli.js"]
+         }
+       }
+     }
+     ```
+3. Print the token: `node packages/mcp-server/dist/cli.js token`. It is created once in `~/.config/drawio-mindmap/bridge-token`.
+4. In draw.io: **Extras → Mindmap → Set LLM Bridge Token…**, paste it. This also turns on **Live LLM Control**. The **LLM ●** indicator in the menubar turns green when connected; click it to turn the connection off or on.
+
+Tools: `list_windows`, `get_mindmap`, `get_selection`, `add_topics`, `rename_topic`, `move_topic`, `delete_topic`, `insert_outline` (Markdown list). With several draw.io windows connected, the LLM picks one with `window_id`.
+
+**Security:** the server listens on `127.0.0.1:47100` only, accepts only the draw.io origin (`MINDMAP_BRIDGE_ORIGINS`, default `http://localhost:8080`) and requires the token. The toggle is off on every page load, so the LLM only has access while you turn it on. Your draw.io server's CSP must allow `ws://127.0.0.1:47100` (`DRAWIO_CSP_HEADER`, see `docker-compose.yml`). Details: [D22](docs/decisions.md).
+
+In the dev container, the MCP server runs inside the container and port 47100 is forwarded, so the browser on your host still reaches it at `127.0.0.1:47100`.
+
 ## Installing on your own draw.io server
 
 The plugin runs on self-hosted draw.io (the `jgraph/drawio` Docker image). app.diagrams.net, Confluence/Jira and draw.io Desktop only allow built-in plugins.
@@ -52,7 +79,7 @@ The plugin runs on self-hosted draw.io (the `jgraph/drawio` Docker image). app.d
 3. Mount [`docker/drawio/PostConfig.js`](docker/drawio/PostConfig.js) at `/usr/local/tomcat/webapps/draw/js/PostConfig.js`. It registers the plugin under the id `mindmap` (D2). It is a copy of the image's own file plus three lines; re-copy it when you change the image version.
 4. Open draw.io with `?p=mindmap`, e.g. `https://drawio.example.com/?p=mindmap`, and bookmark that URL. Without the parameter, draw.io runs without the plugin.
 
-[`docker-compose.yml`](docker-compose.yml) is a working example (it also sets a CSP for the live LLM bridge planned for a later release; v1.0.0 doesn't need it).
+[`docker-compose.yml`](docker-compose.yml) is a working example (it also sets the CSP that live LLM control needs, see below).
 
 ## Development in the dev container (recommended)
 
@@ -92,25 +119,21 @@ Then continue with step 3 above. Rebuild once before `drawio:up` so `dist/` exis
 | `npm test`          | Unit tests (Vitest)                                                  |
 | `npm run test:e2e`  | Playwright tests against draw.io on `localhost:8080`                 |
 | `npm run lint`      | ESLint + Prettier check (`npm run format` fixes formatting)          |
-| `npm run spike:ws`  | WebSocket echo server on `127.0.0.1:47100` (M0 spike)                |
 | `npm run drawio:up` | Start draw.io (`drawio:down` stops it). Not needed in the container. |
 
 ## How the Docker setup loads the plugin
 
 - `packages/plugin/dist` is mounted at `plugins/custom/` in the draw.io web app.
 - `docker/drawio/PostConfig.js` registers the plugin under the id `mindmap`, so `?p=mindmap` loads it (D2). Restart the container after editing that file.
-- `DRAWIO_CSP_HEADER` adds `ws://127.0.0.1:47100` to the CSP so the plugin can reach the local bridge (D4).
-
-To try the WebSocket spike manually: `npm run spike:ws`, then **Extras → Mindmap → Test WebSocket connection…**.
+- `DRAWIO_CSP_HEADER` adds `ws://127.0.0.1:47100` to the CSP so the plugin can reach the MCP server's bridge (D4, D22).
 
 ## Project layout
 
 ```text
 packages/plugin/        draw.io plugin (src/, test/unit/, dist/)
-packages/mcp-server/    MCP server for live LLM control (from M6)
+packages/mcp-server/    MCP server for live LLM control (TypeScript)
 test/e2e/               Playwright tests against the draw.io container
 docker/drawio/          draw.io configuration files mounted into the container
-scripts/                Dev tools (WebSocket echo server)
 samples/                .drawio files for manual testing
 ```
 
