@@ -168,3 +168,12 @@ The plan had an `mmCollapsed` style key. **Decision:** use draw.io's built-in tr
 - **Concurrency:** LLM changes and the user's typing are separate transactions. A label being edited is not interrupted; if the LLM deletes that topic, draw.io ends the edit.
 - **Tests:** contract tests run the MCP client and server in memory against a fake plugin socket (token, origin, validation, several windows, disconnect mid-call, timeout); the e2e test starts the real server over stdio and drives the open diagram, including one-step undo.
 - The M0 WebSocket spike (menu entry, `window.mindmap.spike`, echo server) is removed; the bridge e2e test keeps the CSP check (other ports stay blocked).
+
+## D23 – Several MCP server processes share one bridge (M6 fix)
+
+Claude Desktop starts the MCP server more than once (for chats and separately for its Cowork/Code session pool), and Claude Code may start another. Only one process can listen on port 47100, so the others used to exit with `EADDRINUSE`, which Claude Desktop logged as "Couldn't start … Connection closed" over and over.
+
+- **Fix:** the first process becomes the **hub** and owns the port. Later processes notice the port is taken and connect to the hub as **relays** over the same WebSocket (`hello` with `role: "relay"`), forwarding `windows` and tool requests. Browser windows only ever talk to the port.
+- **Failover:** when the hub process exits, its relays race (with jitter) to take over the port; the winner becomes the hub, the others relay through it, and draw.io windows reconnect on their own.
+- **Security:** relays need the token, like windows. A relay must be a local non-browser process (no `Origin` header); a window must come from an allowed origin. So a web page can't pose as a relay, and a local process can't pose as a window. If the port belongs to something else (or a hub with a different token), the process keeps retrying and its tools answer "Reconnecting…".
+- An MCP server started inside the dev container and one on the host are in different network namespaces; they don't share a hub unless the container's port is forwarded to the host first. Use one place to run MCP clients.

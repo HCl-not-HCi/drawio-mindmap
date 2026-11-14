@@ -10,7 +10,7 @@ All notable changes to this project. The format follows [Keep a Changelog](https
 - **Export** a map as Markdown, OPML or FreeMind: Extras → Mindmap → Export as. FreeMind keeps sides and collapsed branches.
 - **Paste outline:** pasting indented text or a Markdown list while a topic is selected adds the lines as child topics.
 - API: `importOutline`, `importText`, `exportMindmap`; outlines from `getMindmap` include `side` on first-level topics.
-- **Live LLM control:** an MCP server (`packages/mcp-server`) lets an LLM in Claude Code, Claude Desktop or another MCP client read and edit the mindmap open in draw.io, live. Tools: `list_windows`, `get_mindmap`, `get_selection`, `add_topics`, `rename_topic`, `move_topic`, `delete_topic`, `insert_outline`. Every change is one undo step. Off by default; turn it on with Extras → Mindmap → Live LLM Control. Local-only, origin-checked and token-protected.
+- **Live LLM control:** an MCP server (`packages/mcp-server`) lets an LLM in Claude Code, Claude Desktop or another MCP client read and edit the mindmap open in draw.io, live. Tools: `list_windows`, `get_mindmap`, `get_selection`, `add_topics`, `rename_topic`, `move_topic`, `delete_topic`, `insert_outline`. Every change is one undo step. Off by default; turn it on with Extras → Mindmap → Live LLM Control. Local-only, origin-checked and token-protected. Several MCP server processes (e.g. Claude Desktop's chat and Cowork pools, plus Claude Code) share the bridge: the first owns the port, the others relay through it and take over if it exits.
 
 ### Removed
 
