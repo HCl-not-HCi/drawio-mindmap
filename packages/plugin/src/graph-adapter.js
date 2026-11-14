@@ -16,16 +16,23 @@ export function snapshot(graph) {
     const edge = model.isEdge(cell);
     if (!vertex && !edge) continue;
     const geo = model.getGeometry(cell);
-    cells.push({
+    const entry = {
       id: cell.id,
       vertex,
       edge,
       style: model.getStyle(cell) ?? '',
-      label: vertex ? labelOf(graph, cell) : '',
       source: edge ? (model.getTerminal(cell, true)?.id ?? null) : null,
       target: edge ? (model.getTerminal(cell, false)?.id ?? null) : null,
       geometry: geo ? { x: geo.x, y: geo.y, width: geo.width, height: geo.height } : null,
+    };
+    // Converting HTML labels to text is the expensive part of a snapshot and only
+    // outlines need it, so labels are computed on first access.
+    let label;
+    Object.defineProperty(entry, 'label', {
+      enumerable: true,
+      get: () => (label ??= vertex ? labelOf(graph, cell) : ''),
     });
+    cells.push(entry);
   }
   return cells;
 }
