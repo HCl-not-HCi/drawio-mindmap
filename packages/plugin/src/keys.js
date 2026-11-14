@@ -4,7 +4,7 @@ import { log } from './log.js';
 
 /* global mxEvent, mxClient */
 
-export const KEY = { TAB: 9, ENTER: 13, BACKSPACE: 8, DELETE: 46, M: 77 };
+export const KEY = { TAB: 9, ENTER: 13, BACKSPACE: 8, DELETE: 46, M: 77, PERIOD: 190 };
 
 const ARROWS = { 37: 'left', 38: 'up', 39: 'right', 40: 'down' };
 
@@ -70,10 +70,15 @@ export function registerKeys(ui, commands, actions) {
     ) {
       return run(actions.newMindmap);
     }
-    if (mod.ctrl || mod.alt || mod.shift) return null;
-
     const ids = selectedTopicIds();
     if (ids == null) return null;
+
+    // Ctrl+. (Cmd+. on macOS) collapses/expands. Replaces draw.io's superscript shortcut
+    // only while topics are selected.
+    if (evt.keyCode === KEY.PERIOD && mod.ctrl && !mod.alt && !mod.shift) {
+      return run(() => commands.toggleCollapsed(ids));
+    }
+    if (mod.ctrl || mod.alt || mod.shift) return null;
 
     const direction = ARROWS[evt.keyCode];
     if (direction != null) {

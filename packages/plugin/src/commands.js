@@ -6,6 +6,7 @@ import { chooseSide } from './layout.js';
 import { DIRECTIONS, navigate } from './navigation.js';
 import {
   buildIndex,
+  getChildren,
   getParent,
   getSide,
   isRootStyle,
@@ -52,6 +53,8 @@ export function createCommands(graph) {
     const layer = model.getParent(parentCell);
     const { width, height } = SIZES.topic;
     return transaction(() => {
+      // Adding to a collapsed topic expands it first, so the new topic is visible.
+      if (model.isCollapsed(parentCell)) graph.foldCells(false, false, [parentCell]);
       for (const { id, order } of plan.reorder ?? []) {
         const cell = cellOf(id);
         model.setStyle(cell, setStyleValues(model.getStyle(cell), { [KEY_ORDER]: order }));
@@ -153,6 +156,29 @@ export function createCommands(graph) {
     listMindmaps() {
       const idx = index();
       return idx.roots.map((id) => ({ id, label: idx.topics.get(id).label }));
+    },
+
+    /**
+     * Collapses or expands topics (draw.io tree folding: descendants are hidden, the
+     * diagram stays a normal draw.io file). Topics without children are ignored.
+     */
+    setCollapsed(topicIds, collapsed) {
+      const idx = index();
+      const cells = topicIds
+        .filter((id) => requireTopic(idx, id) && getChildren(idx, id).length > 0)
+        .map(cellOf)
+        .filter((cell) => model.isCollapsed(cell) !== collapsed);
+      if (cells.length > 0) transaction(() => graph.foldCells(collapsed, false, cells));
+    },
+
+    /** Collapses the topics if any of them is expanded, otherwise expands them. */
+    toggleCollapsed(topicIds) {
+      const idx = index();
+      const foldable = topicIds.filter(
+        (id) => requireTopic(idx, id) && getChildren(idx, id).length > 0,
+      );
+      const anyExpanded = foldable.some((id) => !model.isCollapsed(cellOf(id)));
+      commands.setCollapsed(foldable, anyExpanded);
     },
 
     /** Neighbouring topic in a direction ('left' | 'right' | 'up' | 'down'), or null. */

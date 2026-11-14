@@ -76,7 +76,7 @@ describe('navigate', () => {
 
   it('does not enter collapsed topics', () => {
     const c = cells();
-    c.find((x) => x.id === 'R1').style += 'mmCollapsed=1;';
+    c.find((x) => x.id === 'R1').collapsed = true;
     expect(navigate(buildIndex(c), 'R1', 'right')).toBeNull();
   });
 });

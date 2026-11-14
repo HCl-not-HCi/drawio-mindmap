@@ -4,7 +4,14 @@
 // history and file diffs stay small.
 import { snapshot } from './graph-adapter.js';
 import { DEFAULT_SPACING, layoutTree } from './layout.js';
-import { buildIndex, getSide, isRootStyle, KEY_SIDE, toLayoutTree } from './model.js';
+import {
+  buildIndex,
+  getChildren,
+  getSide,
+  isRootStyle,
+  KEY_SIDE,
+  toLayoutTree,
+} from './model.js';
 import { getStyleValue, setStyleValues } from './style.js';
 import { EDGE_STYLE_VALUES, SIZING } from './styles.js';
 
@@ -86,6 +93,18 @@ export function applyLayout(graph, spacing = DEFAULT_SPACING) {
     for (const [id, topic] of index.topics) {
       const size = fittedSize(graph, model.getCell(id));
       sizes.set(id, size ?? { width: topic.geometry.width, height: topic.geometry.height });
+    }
+
+    // draw.io tree folding: the +/- toggle only on topics that have children. A topic that
+    // lost its last child while collapsed is expanded again.
+    for (const id of index.topics.keys()) {
+      const cell = model.getCell(id);
+      const hasChildren = getChildren(index, id).length > 0;
+      setStyle(cell, { treeFolding: hasChildren ? 1 : null });
+      if (!hasChildren && model.isCollapsed(cell)) {
+        model.setCollapsed(cell, false);
+        changed++;
+      }
     }
 
     for (const rootId of index.roots) {

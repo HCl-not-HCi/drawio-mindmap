@@ -213,7 +213,8 @@ describe('toLayoutTree', () => {
       { id: 'a', parent: 'r', order: 0 },
       { id: 'a1', parent: 'a', order: 0 },
     ]);
-    cells.find((c) => c.id === 'a').style += 'mmSide=left;mmCollapsed=1;';
+    cells.find((c) => c.id === 'a').style += 'mmSide=left;';
+    cells.find((c) => c.id === 'a').collapsed = true;
     cells.find((c) => c.id === 'a1').style += 'mmSide=right;';
     const tree = toLayoutTree(buildIndex(cells), 'r');
     expect(tree).toEqual({

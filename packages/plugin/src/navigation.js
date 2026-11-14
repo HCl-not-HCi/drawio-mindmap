@@ -4,13 +4,12 @@
 // Left to the parent; on the left side it's mirrored. From the root, Left/Right enter that
 // side. Of several children, the one vertically closest to the current topic is chosen.
 // Up/Down move between siblings (on the root's level: siblings on the same side).
-import { getChildren, getParent, getSide, KEY_COLLAPSED, requireTopic } from './model.js';
-import { getStyleValue } from './style.js';
+import { getChildren, getParent, getSide, requireTopic } from './model.js';
 
 export const DIRECTIONS = ['left', 'right', 'up', 'down'];
 
 const centerY = (topic) => topic.geometry.y + topic.geometry.height / 2;
-const isCollapsed = (topic) => getStyleValue(topic.style, KEY_COLLAPSED) === '1';
+const isCollapsed = (topic) => topic.collapsed === true;
 
 /** Side of a topic: its first-level ancestor's side; null for roots. Defaults to right. */
 export function sideOf(index, id) {

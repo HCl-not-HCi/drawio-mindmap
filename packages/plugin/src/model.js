@@ -1,7 +1,8 @@
 // Mindmap data model on plain objects. No draw.io dependency.
 //
 // The diagram is read into a snapshot: an array of
-//   { id, vertex, edge, style, label, source, target, geometry: {x, y, width, height} }
+//   { id, vertex, edge, style, label, source, target, collapsed, geometry: {x, y, width, height} }
+// `collapsed` is draw.io's own folding state (treeFolding), see decisions D16.
 // (see graph-adapter.js). This module derives the tree from it and plans changes;
 // commands.js applies the plans to the draw.io model.
 import { getStyleValue } from './style.js';
@@ -11,7 +12,6 @@ export const KEY_ROLE = 'mmRole';
 export const KEY_ORDER = 'mmOrder';
 export const KEY_EDGE = 'mmEdge';
 export const KEY_SIDE = 'mmSide';
-export const KEY_COLLAPSED = 'mmCollapsed';
 export const ROLE_ROOT = 'root';
 export const ROLE_TOPIC = 'topic';
 
@@ -189,7 +189,7 @@ export function toLayoutTree(index, rootId, sizeOf) {
       width,
       height,
       side: depth === 1 ? getSide(style) : null,
-      collapsed: getStyleValue(style, KEY_COLLAPSED) === '1',
+      collapsed: index.topics.get(id).collapsed === true,
       children: getChildren(index, id)
         .filter((c) => !seen.has(c))
         .map((c) => build(c, depth + 1, seen)),
@@ -203,9 +203,11 @@ export function toLayoutTree(index, rootId, sizeOf) {
 export function toOutline(index, id) {
   const build = (current, seen) => {
     seen.add(current);
+    const topic = index.topics.get(current);
     return {
       id: current,
-      label: index.topics.get(current).label ?? '',
+      label: topic.label ?? '',
+      ...(topic.collapsed === true && { collapsed: true }),
       children: getChildren(index, current)
         .filter((c) => !seen.has(c))
         .map((c) => build(c, seen)),

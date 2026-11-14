@@ -24,6 +24,7 @@ export function snapshot(graph) {
       source: edge ? (model.getTerminal(cell, true)?.id ?? null) : null,
       target: edge ? (model.getTerminal(cell, false)?.id ?? null) : null,
       geometry: geo ? { x: geo.x, y: geo.y, width: geo.width, height: geo.height } : null,
+      collapsed: vertex && model.isCollapsed(cell),
     };
     // Converting HTML labels to text is the expensive part of a snapshot and only
     // outlines need it, so labels are computed on first access.
