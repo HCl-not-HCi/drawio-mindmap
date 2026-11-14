@@ -80,6 +80,19 @@ describe('planDrop', () => {
     expect(plan('R1a', { x: 700, y: 0 })).toBeNull();
   });
 
+  it('attaches a detached topic only when dropped onto a topic', () => {
+    const c = cells({ X: { x: 210, y: 55 } });
+    c.push({
+      id: 'X',
+      vertex: true,
+      style: 'mindmap=1;mmRole=topic;',
+      geometry: { x: 210, y: 55, width: 100, height: 30 },
+    });
+    expect(planDrop(buildIndex(c), 'X')).toEqual({ parentId: 'R2', beforeId: null, side: null });
+    c.at(-1).geometry = { x: 900, y: 900, width: 100, height: 30 };
+    expect(planDrop(buildIndex(c), 'X')).toBeNull();
+  });
+
   it('never moves roots', () => {
     expect(plan('root', { x: 210, y: 5 })).toBeNull();
   });

@@ -6,7 +6,14 @@ import { applyLayout } from './apply-layout.js';
 import { planDrop } from './drop.js';
 import { snapshot } from './graph-adapter.js';
 import { log } from './log.js';
-import { buildIndex, isMindmapEdgeStyle, isRootStyle, isTopicStyle } from './model.js';
+import {
+  buildIndex,
+  getParent,
+  getSubtree,
+  isMindmapEdgeStyle,
+  isRootStyle,
+  isTopicStyle,
+} from './model.js';
 
 /* global mxEvent, mxRootChange, mxChildChange, mxStyleChange */
 
@@ -35,18 +42,27 @@ export function registerListeners(ui, { stats, commands } = {}) {
   let running = false;
 
   // Drag to reparent/reorder: runs inside draw.io's move transaction, so the drag, the
-  // move and the layout that follows are one undo step. Copies (Ctrl+drag) and
-  // multi-topic drags are left alone; the layout then puts topics back.
+  // move and the layout that follows are one undo step. A drag of one topic, or of one
+  // topic with (some of) its descendants, e.g. a pasted branch, counts as moving that
+  // topic. Copies (Ctrl+drag) and other multi-topic drags are left to the layout.
   graph.addListener(mxEvent.MOVE_CELLS, (sender, evt) => {
     if (commands == null || evt.getProperty('clone')) return;
-    const topics = (evt.getProperty('cells') ?? []).filter(
-      (c) => model.isVertex(c) && isTopicStyle(model.getStyle(c)),
+    const ids = new Set(
+      (evt.getProperty('cells') ?? [])
+        .filter((c) => model.isVertex(c) && isTopicStyle(model.getStyle(c)))
+        .map((c) => c.id),
     );
-    if (topics.length !== 1 || isRootStyle(model.getStyle(topics[0]))) return;
+    if (ids.size === 0) return;
     try {
-      const plan = planDrop(buildIndex(snapshot(graph)), topics[0].id);
+      const index = buildIndex(snapshot(graph));
+      const tops = [...ids].filter((id) => !ids.has(getParent(index, id)));
+      if (tops.length !== 1 || isRootStyle(index.topics.get(tops[0]).style)) return;
+      const top = tops[0];
+      const subtree = new Set(getSubtree(index, top).topicIds);
+      if (![...ids].every((id) => subtree.has(id))) return;
+      const plan = planDrop(index, top);
       if (plan != null) {
-        commands.moveTopic(topics[0].id, plan.parentId, {
+        commands.moveTopic(top, plan.parentId, {
           beforeId: plan.beforeId,
           side: plan.side,
         });

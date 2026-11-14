@@ -137,7 +137,9 @@ export function createCommands(graph) {
       requireTopic(idx, topicId);
       requireTopic(idx, parentId);
       const oldParent = getParent(idx, topicId);
-      if (oldParent == null) throw new Error(`Cannot move a central topic: ${topicId}`);
+      if (oldParent == null && isRootStyle(idx.topics.get(topicId).style)) {
+        throw new Error(`Cannot move a central topic: ${topicId}`);
+      }
       if (getSubtree(idx, topicId).topicIds.includes(parentId)) {
         throw new Error(`Cannot move a topic into its own subtree: ${topicId}`);
       }
@@ -156,7 +158,10 @@ export function createCommands(graph) {
       const parentCell = cellOf(parentId);
       transaction(() => {
         if (model.isCollapsed(parentCell)) graph.foldCells(false, false, [parentCell]);
-        if (oldParent !== parentId) {
+        if (oldParent == null) {
+          // A detached topic (e.g. a pasted branch without its map) gets attached.
+          graph.insertEdge(model.getParent(parentCell), null, '', parentCell, cell, edgeStyle());
+        } else if (oldParent !== parentId) {
           model.setTerminal(cellOf(idx.parentOf.get(topicId).edgeId), parentCell, true);
         }
         order.forEach((id, i) => {

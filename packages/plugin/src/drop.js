@@ -5,7 +5,7 @@
 // - Dropped next to its siblings: moves between them, by vertical position. On the first
 //   level this also picks the side: left or right of the root's centre.
 // - Anywhere else: nothing (the layout puts it back).
-import { getChildren, getParent, getSubtree, requireTopic } from './model.js';
+import { getChildren, getParent, getSubtree, isRootStyle, requireTopic } from './model.js';
 import { sideOf } from './navigation.js';
 
 const center = (g) => ({ x: g.x + g.width / 2, y: g.y + g.height / 2 });
@@ -20,12 +20,12 @@ const contains = (g, p) =>
 export function planDrop(index, topicId) {
   const topic = requireTopic(index, topicId);
   const parentId = getParent(index, topicId);
-  if (parentId == null) return null; // roots and detached topics aren't moved by dragging
+  if (parentId == null && isRootStyle(topic.style)) return null; // roots stay where dropped
   const point = center(topic.geometry);
   const excluded = new Set(getSubtree(index, topicId).topicIds);
 
   // 1. Onto another topic.
-  const siblingIds = new Set(getChildren(index, parentId));
+  const siblingIds = new Set(parentId == null ? [] : getChildren(index, parentId));
   for (const [id, t] of index.topics) {
     if (excluded.has(id) || t.visible === false || t.geometry == null) continue;
     if (!contains(t.geometry, point)) continue;
@@ -35,6 +35,9 @@ export function planDrop(index, topicId) {
     if (!siblingIds.has(id) || inMiddle) return { parentId: id, beforeId: null, side: null };
     break; // edge of a sibling: reorder below
   }
+
+  // A detached topic (pasted branch) can only be attached by dropping it onto a topic.
+  if (parentId == null) return null;
 
   // 2. Among its siblings (same parent), on the root level per side.
   const parent = index.topics.get(parentId);
