@@ -6,6 +6,7 @@ import { checkWebSocket } from './spike/ws-check.js';
 /* global mxResources, mxClient */
 
 export const ACTION_NEW = 'mindmapNew';
+export const ACTION_CONVERT = 'mindmapConvert';
 export const ACTION_ABOUT = 'mindmapAbout';
 export const ACTION_WS_CHECK = 'mindmapWsCheck';
 export const MENU_NAME = 'mindmap';
@@ -36,6 +37,7 @@ export function registerActions(ui, { version, debug, newMindmap, commands }) {
       `${MENU_NAME}=Mindmap`,
       `${LAYOUT_MENU}=Layout`,
       `${ACTION_NEW}=New Mindmap`,
+      `${ACTION_CONVERT}=Convert Selection to Mindmap`,
       `${ACTION_ABOUT}=About Mindmap...`,
       `${ACTION_WS_CHECK}=Test WebSocket connection...`,
       ...Object.entries({ ...MODE_ACTIONS, ...SPACING_ACTIONS }).map(
@@ -45,6 +47,16 @@ export function registerActions(ui, { version, debug, newMindmap, commands }) {
   );
 
   ui.actions.addAction(ACTION_NEW, newMindmap, null, null, NEW_SHORTCUT_LABEL);
+
+  ui.actions.addAction(ACTION_CONVERT, () => {
+    const graph = ui.editor.graph;
+    try {
+      const rootId = commands.convertToMindmap(graph.getSelectionCells().map((c) => c.id));
+      commands.selectTopic(rootId);
+    } catch (e) {
+      ui.alert(e.message);
+    }
+  });
 
   ui.actions.addAction(ACTION_ABOUT, () => {
     ui.alert(`draw.io Mindmap plugin ${version}`);
@@ -117,7 +129,7 @@ export function registerMenus(ui) {
   ui.menus.put(
     MENU_NAME,
     new window.Menu((menu, parent) => {
-      ui.menus.addMenuItems(menu, [ACTION_NEW, '-'], parent);
+      ui.menus.addMenuItems(menu, [ACTION_NEW, ACTION_CONVERT, '-'], parent);
       ui.menus.addSubmenu(LAYOUT_MENU, menu, parent);
       ui.menus.addMenuItems(menu, ['-', ACTION_ABOUT, ACTION_WS_CHECK], parent);
     }),

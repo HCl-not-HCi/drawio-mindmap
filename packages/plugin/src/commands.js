@@ -2,6 +2,7 @@
 // single model transaction, so it is exactly one undo step. Keyboard shortcuts, the
 // public window.mindmap API and (from M6) the LLM bridge all go through these.
 import { snapshot } from './graph-adapter.js';
+import { planConversion } from './convert.js';
 import { chooseSide, DEFAULT_SPACING, MODES } from './layout.js';
 import { DIRECTIONS, navigate } from './navigation.js';
 import {
@@ -13,6 +14,11 @@ import {
   getSide,
   isRootStyle,
   KEY_BRANCH,
+  KEY_EDGE,
+  KEY_MINDMAP,
+  KEY_ROLE,
+  ROLE_ROOT,
+  ROLE_TOPIC,
   KEY_H_GAP,
   KEY_LAYOUT,
   KEY_ORDER,
@@ -171,6 +177,54 @@ export function createCommands(graph) {
           : { [KEY_SIDE]: null, [KEY_BRANCH]: null };
         model.setStyle(cell, setStyleValues(model.getStyle(cell), values));
       });
+    },
+
+    /**
+     * Turns selected shapes and connectors into a mindmap (see convert.js for the rules).
+     * Shapes keep their look; the mindmap styles, colors and layout are applied on top.
+     * Returns the root id.
+     * @param {string[]} cellIds shapes to convert (connectors between them are included)
+     */
+    convertToMindmap(cellIds) {
+      const cells = snapshot(graph);
+      const already = cells.filter(
+        (c) => cellIds.includes(c.id) && c.vertex && isTopicStyle(c.style),
+      );
+      if (already.length > 0) throw new Error('The selection is already part of a mindmap.');
+      const plan = planConversion(cells, cellIds);
+      const restyle = (id, values) => {
+        const cell = cellOf(id);
+        model.setStyle(cell, setStyleValues(model.getStyle(cell), values));
+      };
+      transaction(() => {
+        restyle(plan.rootId, {
+          [KEY_MINDMAP]: 1,
+          [KEY_ROLE]: ROLE_ROOT,
+          [KEY_ORDER]: null,
+          [KEY_SIDE]: null,
+          whiteSpace: 'wrap',
+        });
+        for (const t of plan.topics) {
+          restyle(t.id, {
+            [KEY_MINDMAP]: 1,
+            [KEY_ROLE]: ROLE_TOPIC,
+            [KEY_ORDER]: t.order,
+            [KEY_SIDE]: t.side,
+            whiteSpace: 'wrap',
+          });
+        }
+        for (const e of plan.edges) {
+          const edge = cellOf(e.id);
+          if (e.flip) {
+            const source = model.getTerminal(edge, true);
+            const target = model.getTerminal(edge, false);
+            model.setTerminal(edge, target, true);
+            model.setTerminal(edge, source, false);
+          }
+          restyle(e.id, { [KEY_EDGE]: 1 });
+        }
+      });
+      return plan.rootId;
     },
 
     /** Deletes the topic and its subtree. Deleting a root deletes the whole map. */
