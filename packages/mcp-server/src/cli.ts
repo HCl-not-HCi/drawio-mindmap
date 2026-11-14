@@ -7,7 +7,7 @@
 // stdout is the MCP channel; all logging goes to stderr.
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { Bridge } from './bridge.js';
+import { BridgeLink } from './link.js';
 import { loadOrCreateToken } from './token.js';
 import { registerTools } from './tools.js';
 
@@ -27,14 +27,12 @@ async function main() {
     .map((o) => o.trim())
     .filter(Boolean);
 
-  const bridge = new Bridge({ port, token, allowedOrigins, log });
-  try {
-    await bridge.start();
-  } catch (e) {
-    log(`cannot listen on 127.0.0.1:${port}: ${(e as Error).message}`);
-    process.exit(1);
-  }
-  log(`bridge listening on ws://127.0.0.1:${port} for ${allowedOrigins.join(', ')}`);
+  // The first instance owns the port (hub); later ones relay through it (D23). Don't wait
+  // for that before answering the MCP client: tools report "reconnecting" meanwhile.
+  const bridge = new BridgeLink({ port, token, allowedOrigins, log });
+  bridge.start().catch((e) => {
+    log(`cannot start the bridge on 127.0.0.1:${port}: ${(e as Error).message}`);
+  });
 
   const server = new McpServer({ name: 'drawio-mindmap', version: VERSION });
   registerTools(server, bridge);

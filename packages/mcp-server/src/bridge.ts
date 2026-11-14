@@ -7,8 +7,15 @@
 //   plugin → server  {type: "response", id, ok: true, result} | {type: "response", id, ok: false, error}
 //   plugin → server  {type: "status", title}                       (window title changed)
 //
-// Security: listens on 127.0.0.1 only, accepts only allowed browser origins, and requires
-// the shared token before a window can be controlled (docs/decisions.md D22).
+// Relays: further MCP server processes (Claude Desktop and Claude Code may start several)
+// can't listen on the same port, so they connect to this one ("hub") as relays:
+//   relay → hub      {type: "hello", role: "relay", token}
+//   relay → hub      {type: "relay-request", id, op: "windows" | "request", windowId, method, params}
+//   hub → relay      {type: "relay-response", id, ok, result | error}
+//
+// Security: listens on 127.0.0.1 only; windows must come from an allowed browser origin,
+// relays from a local non-browser process (no Origin header); both need the shared token
+// (docs/decisions.md D22, D23).
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
@@ -55,6 +62,7 @@ function tokensEqual(a: string, b: string): boolean {
 export class Bridge {
   private server: WebSocketServer | null = null;
   private readonly connections = new Map<string, Connection>();
+  private readonly relays = new Set<WebSocket>();
   private readonly options: Required<BridgeOptions>;
 
   constructor(options: BridgeOptions) {
@@ -75,8 +83,12 @@ export class Bridge {
         host,
         port,
         maxPayload: 4 * 1024 * 1024,
+        // Browsers always send Origin: only allowed ones get in. Local processes send none
+        // and may only register as relays (checked at hello).
         verifyClient: ({ req }: { req: IncomingMessage }) =>
-          allowedOrigins.length === 0 || allowedOrigins.includes(req.headers.origin ?? ''),
+          allowedOrigins.length === 0 ||
+          req.headers.origin == null ||
+          allowedOrigins.includes(req.headers.origin),
       });
       server.once('error', reject);
       server.once('listening', () => {
@@ -85,13 +97,14 @@ export class Bridge {
         const address = server.address();
         resolve(typeof address === 'object' && address != null ? address.port : port);
       });
-      server.on('connection', (socket) => this.accept(socket));
+      server.on('connection', (socket, req) => this.accept(socket, req.headers.origin));
       this.server = server;
     });
   }
 
   async stop(): Promise<void> {
     for (const c of this.connections.values()) c.socket.close(1001, 'server stopping');
+    for (const r of this.relays) r.close(1001, 'server stopping');
     await new Promise<void>((resolve) =>
       this.server ? this.server.close(() => resolve()) : resolve(),
     );
@@ -141,8 +154,31 @@ export class Bridge {
     return all[0];
   }
 
-  private accept(socket: WebSocket): void {
+  private async handleRelayMessage(socket: WebSocket, message: Record<string, unknown>) {
+    if (message.type !== 'relay-request' || typeof message.id !== 'string') return;
+    const reply = (body: Record<string, unknown>) => {
+      if (socket.readyState === socket.OPEN) {
+        socket.send(JSON.stringify({ type: 'relay-response', id: message.id, ...body }));
+      }
+    };
+    try {
+      const result =
+        message.op === 'windows'
+          ? this.windows()
+          : await this.request(
+              typeof message.windowId === 'string' ? message.windowId : undefined,
+              String(message.method),
+              message.params,
+            );
+      reply({ ok: true, result });
+    } catch (e) {
+      reply({ ok: false, error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  private accept(socket: WebSocket, origin: string | undefined): void {
     let connection: Connection | null = null;
+    let relay = false;
     const helloTimer = setTimeout(
       () => socket.close(CLOSE_PROTOCOL, 'expected hello'),
       this.options.helloTimeoutMs,
@@ -156,15 +192,37 @@ export class Bridge {
         socket.close(CLOSE_PROTOCOL, 'invalid JSON');
         return;
       }
+      if (relay) {
+        this.handleRelayMessage(socket, message);
+        return;
+      }
       if (connection == null) {
         clearTimeout(helloTimer);
-        if (message.type !== 'hello' || typeof message.windowId !== 'string') {
+        if (message.type !== 'hello') {
           socket.close(CLOSE_PROTOCOL, 'expected hello');
           return;
         }
         if (typeof message.token !== 'string' || !tokensEqual(message.token, this.options.token)) {
           this.options.log('rejected a connection with an invalid token');
           socket.close(CLOSE_INVALID_TOKEN, 'invalid token');
+          return;
+        }
+        if (message.role === 'relay') {
+          if (origin != null) {
+            socket.close(CLOSE_PROTOCOL, 'relays must not be browsers');
+            return;
+          }
+          relay = true;
+          this.relays.add(socket);
+          socket.send(JSON.stringify({ type: 'welcome' }));
+          this.options.log('relay connected');
+          return;
+        }
+        const browserOk =
+          this.options.allowedOrigins.length === 0 ||
+          (origin != null && this.options.allowedOrigins.includes(origin));
+        if (!browserOk || typeof message.windowId !== 'string') {
+          socket.close(CLOSE_PROTOCOL, 'windows must come from an allowed origin');
           return;
         }
         this.connections.get(message.windowId)?.socket.close(1000, 'replaced');
@@ -196,6 +254,11 @@ export class Bridge {
 
     socket.on('close', () => {
       clearTimeout(helloTimer);
+      if (relay) {
+        this.relays.delete(socket);
+        this.options.log('relay disconnected');
+        return;
+      }
       if (connection == null) return;
       for (const p of connection.pending.values()) {
         clearTimeout(p.timer);

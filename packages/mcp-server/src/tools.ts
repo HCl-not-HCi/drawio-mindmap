@@ -3,7 +3,7 @@
 // layout, colors and undo (one step per call) behave exactly as with the keyboard.
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { Bridge } from './bridge.js';
+import type { WindowBridge } from './link.js';
 
 type ToolResult = { content: { type: 'text'; text: string }[]; isError?: boolean };
 
@@ -22,7 +22,7 @@ const windowId = z
 const topicId = (what: string) => z.string().min(1).describe(`Id of ${what} (from get_mindmap).`);
 const label = z.string().min(1).max(2000);
 
-export function registerTools(server: McpServer, bridge: Bridge): void {
+export function registerTools(server: McpServer, bridge: WindowBridge): void {
   const call = async (window: string | undefined, method: string, params: unknown) => {
     try {
       return ok(await bridge.request(window, method, params));
@@ -43,7 +43,7 @@ export function registerTools(server: McpServer, bridge: Bridge): void {
     },
     async () =>
       ok(
-        bridge.windows().map((w) => ({
+        (await bridge.windows()).map((w) => ({
           window_id: w.windowId,
           title: w.title,
           connected_at: w.connectedAt,
