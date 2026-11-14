@@ -152,3 +152,29 @@ test('moveTopic to the first level sets a side and a branch color', async ({ dra
   expect(style).toContain('mmSide=left;');
   expect(style).toMatch(/mmBranch=4;/); // A-D use 0-3
 });
+
+test('a pasted branch can be attached by dragging it onto a topic', async ({ drawio }) => {
+  const { page } = drawio;
+  const ids = await buildMap(page);
+  await page.evaluate((i) => {
+    const { ui, graph } = window.mindmapDebug;
+    const model = graph.getModel();
+    graph.setSelectionCells(graph.addAllEdges([i.A, i.A1, i.A2].map((id) => model.getCell(id))));
+    ui.actions.get('copy').funct();
+    ui.actions.get('paste').funct();
+  }, ids);
+  // The pasted copy is selected; its top topic has no parent yet.
+  await page.waitForFunction(() => window.mindmap.getSelectedTopics().length === 3);
+  const pastedTop = await page.evaluate(() => {
+    const model = window.mindmapDebug.graph.getModel();
+    const selected = window.mindmap.getSelectedTopics();
+    return selected.find((id) => /mmBranch=/.test(model.getCell(id).style));
+  });
+  expect(pastedTop).toBeTruthy();
+
+  await drag(page, pastedTop, ids.C);
+  expect(await outline(page)).toEqual([
+    'Root',
+    [['A', ['A1', 'A2']], 'B', ['C', [['A', ['A1', 'A2']]]], 'D'],
+  ]);
+});
