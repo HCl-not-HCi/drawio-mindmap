@@ -96,3 +96,17 @@ The algorithm is a block layout (as in XMind): each subtree is a vertical block,
 ## D13 – Performance baseline (M2)
 
 On a ~310-topic map in the dev container (headless Chromium): adding a topic takes about 45 ms median end to end, of which the layout pass is about 25 ms. Every change re-lays out all maps on the page. If this becomes a problem, re-layout only the affected map or side (PLAN §8).
+
+## D14 – Arrow-key navigation (M3)
+
+- Left/Right follow the geometry, not the tree: on the right side Right goes to the children and Left to the parent; on the left side it's mirrored. From the root, Left/Right enter that side.
+- Of several children, the one closest vertically to the current topic is selected (usually the middle one), as in XMind. Ties go to the upper one.
+- Up/Down move between siblings; on the first level, only between siblings on the same side. At the end of a list, the selection stays. Moving to the adjacent topic of a neighbouring branch is left for later.
+- Arrows on a single selected topic never nudge it (the layout would undo that anyway). With several topics selected, draw.io's arrow handling applies.
+- New API method: `getAdjacentTopic(id, direction)`.
+
+## D15 – Releases (M3)
+
+- The release checklist and its results per release live in [release-checklist.md](release-checklist.md); the changelog is [CHANGELOG.md](../CHANGELOG.md) (hand-written from the conventional commits).
+- `.github/workflows/release.yml` runs on `v*` tags: lint, unit tests, build, a check that the tag matches the package version, the e2e suite, then a GitHub release with `mindmap.js` and the changelog entry as notes.
+- v0.1.0 is tagged locally. The repository has no GitHub remote yet, so the release workflow runs once the repo and tag are pushed.

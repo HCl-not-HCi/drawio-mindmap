@@ -2,7 +2,7 @@
 
 A draw.io plugin for fast, keyboard-driven mind mapping. Mindmaps stay normal draw.io diagrams that open and render without the plugin.
 
-Status: **M2 (layout)**. Mind maps can be created and edited with the keyboard and are laid out automatically on both sides of the central topic. See [docs/PLAN.md](docs/PLAN.md) for the plan and [docs/decisions.md](docs/decisions.md) for decisions made along the way.
+Status: **v0.1.0 (MVP)**. Create mind maps, edit and navigate them with the keyboard; they are laid out automatically on both sides of the central topic. See [CHANGELOG.md](CHANGELOG.md) for what's in the release and its known limitations. See [docs/PLAN.md](docs/PLAN.md) for the plan and [docs/decisions.md](docs/decisions.md) for decisions made along the way.
 
 ## Pinned versions
 
@@ -30,6 +30,17 @@ From the browser console, `window.mindmap` offers the same commands by topic id 
 
 `samples/basic.drawio` is a small map for manual testing (File → Open from → Device).
 
+## Installing on your own draw.io server
+
+The plugin runs on self-hosted draw.io (the `jgraph/drawio` Docker image). app.diagrams.net, Confluence/Jira and draw.io Desktop only allow built-in plugins.
+
+1. Download `mindmap.js` from the release (or run `npm run build` → `packages/plugin/dist/mindmap.js`).
+2. Mount it into the container at `/usr/local/tomcat/webapps/draw/plugins/custom/mindmap.js`.
+3. Mount [`docker/drawio/PostConfig.js`](docker/drawio/PostConfig.js) at `/usr/local/tomcat/webapps/draw/js/PostConfig.js`. It registers the plugin under the id `mindmap` (D2). It is a copy of the image's own file plus three lines; re-copy it when you change the image version.
+4. Open draw.io with `?p=mindmap`, e.g. `https://drawio.example.com/?p=mindmap`, and bookmark that URL. Without the parameter, draw.io runs without the plugin.
+
+[`docker-compose.yml`](docker-compose.yml) is a working example (it also sets a CSP for the live LLM bridge planned for a later release; v0.1.0 doesn't need it).
+
 ## Development in the dev container (recommended)
 
 Requirements: Docker and VS Code with the _Dev Containers_ extension.
@@ -44,7 +55,7 @@ Requirements: Docker and VS Code with the _Dev Containers_ extension.
 3. In your browser on the host, open <http://localhost:8080/?p=mindmap> (bookmark it). `p=mindmap` loads the plugin; no Plugins-dialog setup is needed (D2). Don't add `?offline=1`: draw.io skips plugins in offline mode (D3).
 4. After each rebuild, reload the tab. Keep DevTools open with **Network → Disable cache** checked.
 
-The console shows `[mindmap] loaded v0.0.1 (dev build)`. In dev builds, `window.mindmapDebug` exposes the EditorUi and graph.
+The console shows `[mindmap] loaded v0.1.0 (dev build)`. In dev builds, `window.mindmapDebug` exposes the EditorUi and graph.
 
 ## Development without the dev container
 
