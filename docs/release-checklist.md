@@ -2,6 +2,20 @@
 
 The manual checklist from [PLAN.md §6](PLAN.md), run before every release. draw.io Desktop is no longer a target (D5), so every item is checked on Docker only. Items marked _(e2e)_ are covered by the Playwright suite; the rest are checked by hand.
 
+## v1.0.0 – 2026-11-14, `jgraph/drawio:32.6.10`
+
+| Item                                                                    | Result | How                                                                                                     |
+| ----------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------- |
+| Plugin loads without console errors and prints its version              | ✅     | _(e2e)_ `plugin-loads.spec.js`                                                                          |
+| All shortcuts work (MVP + v1.0)                                         | ✅     | _(e2e)_ `editing`, `navigation`, `structure`, `reparent`, `convert` specs                               |
+| Shortcuts don't interfere with normal draw.io editing outside a mindmap | ✅     | _(e2e)_ normal shapes and mixed selections keep their behavior                                          |
+| Undo/redo restores structure and layout in one step per action          | ✅     | _(e2e)_ commands, collapse, drag and convert are each one step                                          |
+| A mindmap saved with the plugin opens correctly without it              | ✅     | _(e2e)_ `navigation.spec.js`; folding works without the plugin (draw.io feature)                        |
+| Large sample (about 300 topics) stays responsive when adding topics     | ✅     | _(e2e)_ 50–70 ms median per added topic (one outlier of 220 ms under heavy load from another container) |
+| Copy/paste of a subtree between diagrams keeps it a valid mindmap       | ✅     | _(e2e)_ whole maps paste as maps; a pasted branch is attached by dropping it onto a topic               |
+| Mindmaps are readable in both light and dark theme                      | ✅     | Palette contrast unit-tested for both themes; screenshots with `?dark=1` checked by hand                |
+| Used for real notes                                                     | ⏳     | Waiting for daily use                                                                                   |
+
 ## v0.1.0 – 2026-11-14, `jgraph/drawio:32.6.10`
 
 | Item                                                                    | Result    | How                                                                                                                                                               |

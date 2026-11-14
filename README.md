@@ -2,7 +2,7 @@
 
 A draw.io plugin for fast, keyboard-driven mind mapping. Mindmaps stay normal draw.io diagrams that open and render without the plugin.
 
-Status: **v0.1.0 (MVP)**. Create mind maps, edit and navigate them with the keyboard; they are laid out automatically on both sides of the central topic. See [CHANGELOG.md](CHANGELOG.md) for what's in the release and its known limitations. See [docs/PLAN.md](docs/PLAN.md) for the plan and [docs/decisions.md](docs/decisions.md) for decisions made along the way.
+Status: **v1.0.0**. Create mind maps, edit and navigate them with the keyboard, collapse branches, rearrange them by drag and drop, and convert hand-drawn trees. Maps are laid out automatically and colored per branch. See [CHANGELOG.md](CHANGELOG.md) for what's in each release and the known limitations. See [docs/PLAN.md](docs/PLAN.md) for the plan and [docs/decisions.md](docs/decisions.md) for decisions made along the way.
 
 ## Pinned versions
 
@@ -14,19 +14,31 @@ Status: **v0.1.0 (MVP)**. Create mind maps, edit and navigate them with the keyb
 
 ## Using the plugin
 
-| Key                       | Action                                                        |
-| ------------------------- | ------------------------------------------------------------- |
-| Alt+Shift+M (⌥⇧M)         | New mindmap at the centre of the view (also Extras → Mindmap) |
-| Tab                       | Add a child topic                                             |
-| Enter                     | Add a sibling below (on the central topic: add a child)       |
-| Delete / Backspace        | Delete the topic and its subtree                              |
-| F2 or start typing        | Edit the label                                                |
-| Enter / Esc while editing | Finish editing (Shift+Enter: line break)                      |
-| Tab while editing         | Finish editing and add a child                                |
+| Key / action                    | What it does                                                  |
+| ------------------------------- | ------------------------------------------------------------- |
+| Alt+Shift+M (⌥⇧M)               | New mindmap at the centre of the view (also Extras → Mindmap) |
+| Tab                             | Add a child topic                                             |
+| Enter                           | Add a sibling below (on the central topic: add a child)       |
+| Delete / Backspace              | Delete the topic and its subtree                              |
+| F2 or start typing              | Edit the label                                                |
+| Enter / Esc while editing       | Finish editing (Shift+Enter: line break)                      |
+| Tab while editing               | Finish editing and add a child                                |
+| Arrow keys                      | Select the parent, child or sibling in that direction         |
+| Ctrl+. (⌘.) or the +/- toggle   | Collapse / expand the subtree                                 |
+| Ctrl+← / Ctrl+→ (⌘← / ⌘→)       | Move the branch to the left / right side                      |
+| Drag a topic onto another       | Make it a child of that topic                                 |
+| Drag a topic among its siblings | Reorder it (on the first level, also across sides)            |
 
-The keys only change behavior when mindmap topics are selected; everywhere else draw.io works as usual. Every action, including the re-layout it causes, is one undo step. The layout always wins: dragged topics snap back, and dragging the central topic moves the whole map. Details: [D7, D11](docs/decisions.md).
+The keys only change behavior when mindmap topics are selected; everywhere else draw.io works as usual. Every action, including the re-layout it causes, is one undo step. The layout always wins: topics dropped elsewhere snap back, and dragging the central topic moves the whole map.
 
-From the browser console, `window.mindmap` offers the same commands by topic id (see [D8](docs/decisions.md)), e.g. `mindmap.addChild(mindmap.listMindmaps()[0].id, 'Idea')`.
+**Extras → Mindmap** also has:
+
+- **Convert Selection to Mindmap:** turns a tree of shapes and connectors you drew by hand into a mindmap. Shapes keep their look.
+- **Layout:** both sides, right only or left only, and compact / normal / wide spacing, per map.
+
+Each first-level branch gets its own color, inherited by its topics and connectors, readable in draw.io's light and dark theme. Colors you change by hand are kept until a topic moves to another branch or level. Details: [decisions](docs/decisions.md) D7, D11, D16–D20.
+
+From the browser console, `window.mindmap` offers the same commands by topic id, e.g. `mindmap.addChild(mindmap.listMindmaps()[0].id, 'Idea')`. See [D8](docs/decisions.md) and the [changelog](CHANGELOG.md) for the full list.
 
 `samples/basic.drawio` is a small map for manual testing (File → Open from → Device).
 
@@ -39,7 +51,7 @@ The plugin runs on self-hosted draw.io (the `jgraph/drawio` Docker image). app.d
 3. Mount [`docker/drawio/PostConfig.js`](docker/drawio/PostConfig.js) at `/usr/local/tomcat/webapps/draw/js/PostConfig.js`. It registers the plugin under the id `mindmap` (D2). It is a copy of the image's own file plus three lines; re-copy it when you change the image version.
 4. Open draw.io with `?p=mindmap`, e.g. `https://drawio.example.com/?p=mindmap`, and bookmark that URL. Without the parameter, draw.io runs without the plugin.
 
-[`docker-compose.yml`](docker-compose.yml) is a working example (it also sets a CSP for the live LLM bridge planned for a later release; v0.1.0 doesn't need it).
+[`docker-compose.yml`](docker-compose.yml) is a working example (it also sets a CSP for the live LLM bridge planned for a later release; v1.0.0 doesn't need it).
 
 ## Development in the dev container (recommended)
 
@@ -55,7 +67,7 @@ Requirements: Docker and VS Code with the _Dev Containers_ extension.
 3. In your browser on the host, open <http://localhost:8080/?p=mindmap> (bookmark it). `p=mindmap` loads the plugin; no Plugins-dialog setup is needed (D2). Don't add `?offline=1`: draw.io skips plugins in offline mode (D3).
 4. After each rebuild, reload the tab. Keep DevTools open with **Network → Disable cache** checked.
 
-The console shows `[mindmap] loaded v0.1.0 (dev build)`. In dev builds, `window.mindmapDebug` exposes the EditorUi and graph.
+The console shows `[mindmap] loaded v1.0.0 (dev build)`. In dev builds, `window.mindmapDebug` exposes the EditorUi and graph.
 
 ## Development without the dev container
 

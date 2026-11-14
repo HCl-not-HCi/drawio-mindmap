@@ -95,7 +95,7 @@ The algorithm is a block layout (as in XMind): each subtree is a vertical block,
 
 ## D13 – Performance baseline (M2)
 
-On a ~310-topic map in the dev container (headless Chromium): adding a topic takes about 45 ms median end to end, of which the layout pass is about 25 ms. Every change re-lays out all maps on the page. If this becomes a problem, re-layout only the affected map or side (PLAN §8).
+On a ~310-topic map in the dev container (headless Chromium): adding a topic takes about 45 ms median end to end, of which the layout pass is about 25 ms. With level styles and colors (M4), about 50 ms. Every change re-lays out all maps on the page. If this becomes a problem, re-layout only the affected map or side (PLAN §8).
 
 ## D14 – Arrow-key navigation (M3)
 
@@ -110,3 +110,39 @@ On a ~310-topic map in the dev container (headless Chromium): adding a topic tak
 - The release checklist and its results per release live in [release-checklist.md](release-checklist.md); the changelog is [CHANGELOG.md](../CHANGELOG.md) (hand-written from the conventional commits).
 - `.github/workflows/release.yml` runs on `v*` tags: lint, unit tests, build, a check that the tag matches the package version, the e2e suite, then a GitHub release with `mindmap.js` and the changelog entry as notes.
 - v0.1.0 is tagged locally. The repository has no GitHub remote yet, so the release workflow runs once the repo and tag are pushed.
+
+## D16 – Collapse uses draw.io's own tree folding (M4)
+
+The plan had an `mmCollapsed` style key. **Decision:** use draw.io's built-in tree folding instead. Topics with children get `treeFolding=1`, which shows draw.io's +/- toggle; the collapsed state is the cell's standard `collapsed` attribute, and hidden descendants are ordinary invisible cells. So folding also works for people **without** the plugin, and the file stays a plain draw.io diagram.
+
+- Shortcut: **Ctrl+.** (⌘. on macOS), replacing draw.io's superscript shortcut only while topics are selected. Space stays draw.io's pan key.
+- Collapsing/expanding is one undo step including the re-layout. Adding a child to a collapsed topic expands it first. Nested collapsed states are kept when an ancestor is expanded.
+- API: `setCollapsed(ids, collapsed)`, `toggleCollapsed(ids)`; outlines mark collapsed topics with `collapsed: true`.
+
+## D17 – Layout options and configuration (M4)
+
+- Per-map options are **style keys on the root topic** (`mmLayout=right|left`, `mmRootGap`, `mmHGap`, `mmVGap`), not XML attributes as the plan suggested: style keys travel with copy/paste and need no conversion of the root's value into an object.
+- Menu: Extras → Mindmap → Layout → Both Sides / Right Only / Left Only, and Compact / Normal / Wide spacing. API: `getLayoutOptions(id)`, `setLayoutOptions(id, {mode, spacing})`.
+- One-sided modes don't overwrite the stored `mmSide` of branches, so switching back to both sides restores the previous arrangement.
+- **Configuration question from PLAN §8:** only the per-diagram level is implemented. Per-browser defaults for new maps (local storage) are not needed by any v1.0 feature and stay open until a user asks for them.
+- **Side control:** Ctrl+←/→ (⌘ on macOS) on any topic moves its whole first-level branch; API `setSide(ids, side)`.
+
+## D18 – Level styles and branch colors (M4)
+
+- All look-related settings are in `src/styles.js`: `LEVEL_STYLES` (root, level 1, level 2+), `EDGE_LEVEL_STYLES` and the branch `PALETTE`.
+- Each first-level branch gets a palette index (`mmBranch`) once and keeps it, so colors don't shift when branches are added, removed or moved. Descendants use their branch's color for outline and connector; first-level topics are also filled.
+- **Theme:** colors are `light-dark(light, dark)` pairs, which draw.io resolves for its light and dark theme. A unit test checks every pair: lines ≥ 3:1 against the canvas, text on fills ≥ 4.5:1 (WCAG).
+- **Manual changes survive:** managed keys are applied only when a topic's level or branch changes (or `STYLE_VERSION` is bumped), tracked by an `mmStyle` signature. Colors changed in the Format panel are kept until the topic moves to another level or branch.
+
+## D19 – Drag to reparent (M4)
+
+- Rules in `src/drop.js` (pure): dropping a topic's centre onto another topic makes it the last child (on a sibling, only the middle half; its top/bottom quarter reorders). Dropping in the siblings' column reorders by vertical position; on the first level, the side of the root's centre decides the side. Anywhere else, the layout puts the topic back.
+- The move runs inside draw.io's own move transaction (`MOVE_CELLS`), so drag, move and layout are one undo step. Ctrl+drag (copy) is left to draw.io.
+- A drag of a topic together with its descendants (e.g. a pasted branch) counts as moving that topic. A **detached branch** (pasted without its map) can be attached by dropping it onto a topic; this resolves the v0.1 copy/paste limitation.
+- API: `moveTopic(id, parentId, {beforeId, side})`, which M6's `move_topic` will use.
+
+## D20 – Convert selection to mindmap (M4)
+
+- The central topic is the shape at the graph's centre (smallest maximum distance to the others); ties go to shapes without incoming connectors, then to the most connected. Connectors pointing towards the centre are flipped; connectors that would close a cycle stay normal connectors.
+- Sibling order follows vertical position; first-level sides follow where they were drawn. Shapes keep their look (shape, fill); level styles and branch colors are applied on top.
+- The selection must be one connected tree; otherwise a message explains why nothing happened.
