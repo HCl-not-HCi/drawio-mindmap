@@ -1,6 +1,7 @@
 // Plugin entry point. draw.io calls the function passed to Draw.loadPlugin with the EditorUi.
 import { createCommands } from './commands.js';
 import { registerKeys, selectAndEdit } from './keys.js';
+import { registerListeners } from './listeners.js';
 import { log } from './log.js';
 import { registerActions, registerMenus } from './menu.js';
 import { checkWebSocket } from './spike/ws-check.js';
@@ -19,6 +20,7 @@ Draw.loadPlugin(function (ui) {
   registerActions(ui, { version: VERSION, debug, newMindmap });
   registerMenus(ui);
   registerKeys(ui, commands, { newMindmap });
+  registerListeners(ui, { stats: debug });
 
   // Public API: selection-independent commands, one undo step each.
   // `spike` is the M0 WebSocket check, kept for e2e tests; removed in M6.

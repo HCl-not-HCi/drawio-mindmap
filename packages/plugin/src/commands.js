@@ -2,9 +2,12 @@
 // single model transaction, so it is exactly one undo step. Keyboard shortcuts, the
 // public window.mindmap API and (from M6) the LLM bridge all go through these.
 import { snapshot } from './graph-adapter.js';
+import { chooseSide } from './layout.js';
 import {
   buildIndex,
   getParent,
+  getSide,
+  isRootStyle,
   getRootOf,
   getSubtree,
   isTopicStyle,
@@ -12,6 +15,7 @@ import {
   planAddChild,
   planAddSibling,
   requireTopic,
+  toLayoutTree,
   toOutline,
 } from './model.js';
 import { setStyleValues } from './style.js';
@@ -34,7 +38,15 @@ export function createCommands(graph) {
     }
   }
 
-  function insertTopic(plan, label) {
+  // First-level topics get a fixed side when created, so branches never jump sides as
+  // the map grows: a sibling's side if there is one, else the shorter side.
+  function sideFor(idx, parentId, siblingId) {
+    if (!isRootStyle(idx.topics.get(parentId).style)) return null;
+    const siblingSide = siblingId != null ? getSide(idx.topics.get(siblingId).style) : null;
+    return siblingSide ?? chooseSide(toLayoutTree(idx, parentId));
+  }
+
+  function insertTopic(plan, label, side) {
     const parentCell = cellOf(plan.parentId);
     const layer = model.getParent(parentCell);
     const { width, height } = SIZES.topic;
@@ -51,7 +63,7 @@ export function createCommands(graph) {
         plan.position.y,
         width,
         height,
-        topicStyle(plan.order),
+        topicStyle(plan.order, side),
       );
       graph.insertEdge(layer, null, '', parentCell, vertex, edgeStyle());
       return vertex.id;
@@ -83,12 +95,17 @@ export function createCommands(graph) {
 
     /** Adds a topic as the last child of `parentId`. Returns the new topic id. */
     addChild(parentId, label) {
-      return insertTopic(planAddChild(index(), parentId, SIZES.topic), label);
+      const idx = index();
+      const plan = planAddChild(idx, parentId, SIZES.topic);
+      return insertTopic(plan, label, sideFor(idx, parentId, null));
     },
 
     /** Adds a topic directly after `topicId` (on a root: a child). Returns the new id. */
     addSibling(topicId, label) {
-      return insertTopic(planAddSibling(index(), topicId, SIZES.topic), label);
+      const idx = index();
+      const plan = planAddSibling(idx, topicId, SIZES.topic);
+      const sibling = plan.parentId === topicId ? null : topicId;
+      return insertTopic(plan, label, sideFor(idx, plan.parentId, sibling));
     },
 
     /** Deletes the topic and its subtree. Deleting a root deletes the whole map. */
