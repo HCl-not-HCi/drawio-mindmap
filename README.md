@@ -35,6 +35,7 @@ The keys only change behavior when mindmap topics are selected; everywhere else 
 
 - **Convert Selection to Mindmap:** turns a tree of shapes and connectors you drew by hand into a mindmap. Shapes keep their look.
 - **Layout:** both sides, right only or left only, and compact / normal / wide spacing, per map.
+- **Import from File / Export as:** Markdown, OPML and FreeMind (`.mm`). Pasting indented text or a Markdown list while a topic is selected adds the lines as child topics.
 
 Each first-level branch gets its own color, inherited by its topics and connectors, readable in draw.io's light and dark theme. Colors you change by hand are kept until a topic moves to another branch or level. Details: [decisions](docs/decisions.md) D7, D11, D16–D20.
 

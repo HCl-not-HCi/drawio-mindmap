@@ -146,3 +146,14 @@ The plan had an `mmCollapsed` style key. **Decision:** use draw.io's built-in tr
 - The central topic is the shape at the graph's centre (smallest maximum distance to the others); ties go to shapes without incoming connectors, then to the most connected. Connectors pointing towards the centre are flipped; connectors that would close a cycle stay normal connectors.
 - Sibling order follows vertical position; first-level sides follow where they were drawn. Shapes keep their look (shape, fill); level styles and branch colors are applied on top.
 - The selection must be one connected tree; otherwise a message explains why nothing happened.
+
+## D21 – Import, export and paste outline (M5)
+
+- **Outline** (`src/io/outline.js`) is the format-neutral tree `{label, children, side?, collapsed?}` shared by import, export and, in M6, the LLM bridge's `insert_outline`. `getMindmap()` outlines now also carry `side` on first-level topics.
+- **Markdown:** headings nest by level; list items and plain lines nest by indentation of any width (2/4 spaces, tabs) under the closest heading. Blank lines and fenced code blocks are skipped. Export writes the root as `#` heading and the rest as a nested `-` list; a line break inside a topic is written as `<br>`. Markdown has no notion of sides or collapsed state.
+- **OPML 2.0:** `<outline text>` (or `title`). Several top-level outlines get a new root named after the document title. Export writes the root as the single top-level outline.
+- **FreeMind/Freeplane `.mm`:** `TEXT` or rich-text node content; `POSITION` ↔ first-level side and `FOLDED` ↔ collapsed, in both directions. Notes, icons and styles are ignored.
+- **Import** creates a new map at the centre of the view (or under a topic via the API), as one undo step; positions, colors and sizes come from the layout. Format: file extension, else content sniffing.
+- **Paste outline:** plain text pasted while exactly one topic is selected becomes child topics, one per line, nested by indentation. draw.io's own clipboard content (copied cells) and pastes without a selected topic are left to draw.io.
+- XML parsing uses the browser's `DOMParser` (unit tests inject jsdom's; jsdom is a dev dependency only, not bundled).
+- API: `importOutline(outline, {parentId, x, y})`, `importText(text, {format, filename, parentId})`, `exportMindmap(topicId, format)`.

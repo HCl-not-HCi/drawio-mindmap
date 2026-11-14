@@ -2,6 +2,15 @@
 
 All notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- **Import** Markdown (headings and nested lists, or indented text), OPML and FreeMind/Freeplane `.mm` files as new maps: Extras → Mindmap → Import from File.
+- **Export** a map as Markdown, OPML or FreeMind: Extras → Mindmap → Export as. FreeMind keeps sides and collapsed branches.
+- **Paste outline:** pasting indented text or a Markdown list while a topic is selected adds the lines as child topics.
+- API: `importOutline`, `importText`, `exportMindmap`; outlines from `getMindmap` include `side` on first-level topics.
+
 ## 1.0.0 – 2026-11-14
 
 ### Added
