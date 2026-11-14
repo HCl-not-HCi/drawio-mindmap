@@ -153,7 +153,7 @@ test('the layout wins over manually moved topics; moving the root moves the map'
       [id, dx, dy],
     );
 
-  await move(ids.A1, 37, 91);
+  await move(ids.A1, 600, 400); // far from any topic: no reparent, just snaps back
   expect(await readTopics(page)).toEqual(before);
 
   await move(ids.root, 100, 50);
