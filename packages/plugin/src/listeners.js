@@ -3,8 +3,10 @@
 // here are appended to the same edit, so a command (or a manual edit, or typing a label)
 // and the layout it triggers are one undo step. mxLayoutManager uses the same mechanism.
 import { applyLayout } from './apply-layout.js';
+import { planDrop } from './drop.js';
+import { snapshot } from './graph-adapter.js';
 import { log } from './log.js';
-import { isMindmapEdgeStyle, isTopicStyle } from './model.js';
+import { buildIndex, isMindmapEdgeStyle, isRootStyle, isTopicStyle } from './model.js';
 
 /* global mxEvent, mxRootChange, mxChildChange, mxStyleChange */
 
@@ -27,10 +29,32 @@ export function isRelevantEdit(changes) {
   return relevant;
 }
 
-export function registerListeners(ui, { stats } = {}) {
+export function registerListeners(ui, { stats, commands } = {}) {
   const graph = ui.editor.graph;
   const model = graph.getModel();
   let running = false;
+
+  // Drag to reparent/reorder: runs inside draw.io's move transaction, so the drag, the
+  // move and the layout that follows are one undo step. Copies (Ctrl+drag) and
+  // multi-topic drags are left alone; the layout then puts topics back.
+  graph.addListener(mxEvent.MOVE_CELLS, (sender, evt) => {
+    if (commands == null || evt.getProperty('clone')) return;
+    const topics = (evt.getProperty('cells') ?? []).filter(
+      (c) => model.isVertex(c) && isTopicStyle(model.getStyle(c)),
+    );
+    if (topics.length !== 1 || isRootStyle(model.getStyle(topics[0]))) return;
+    try {
+      const plan = planDrop(buildIndex(snapshot(graph)), topics[0].id);
+      if (plan != null) {
+        commands.moveTopic(topics[0].id, plan.parentId, {
+          beforeId: plan.beforeId,
+          side: plan.side,
+        });
+      }
+    } catch (e) {
+      log.error('drop failed', e);
+    }
+  });
 
   model.addListener(mxEvent.BEFORE_UNDO, (sender, evt) => {
     if (running) return;

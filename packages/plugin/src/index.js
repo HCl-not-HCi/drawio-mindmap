@@ -20,7 +20,7 @@ Draw.loadPlugin(function (ui) {
   registerActions(ui, { version: VERSION, debug, newMindmap, commands });
   registerMenus(ui);
   registerKeys(ui, commands, { newMindmap });
-  registerListeners(ui, { stats: debug });
+  registerListeners(ui, { stats: debug, commands });
 
   // Public API: selection-independent commands, one undo step each.
   // `spike` is the M0 WebSocket check, kept for e2e tests; removed in M6.

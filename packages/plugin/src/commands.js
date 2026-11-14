@@ -12,15 +12,16 @@ import {
   getParent,
   getSide,
   isRootStyle,
+  KEY_BRANCH,
   KEY_H_GAP,
   KEY_LAYOUT,
+  KEY_ORDER,
   KEY_ROOT_GAP,
   KEY_SIDE,
   KEY_V_GAP,
   getRootOf,
   getSubtree,
   isTopicStyle,
-  KEY_ORDER,
   planAddChild,
   planAddSibling,
   requireTopic,
@@ -117,6 +118,59 @@ export function createCommands(graph) {
       const plan = planAddSibling(idx, topicId, SIZES.topic);
       const sibling = plan.parentId === topicId ? null : topicId;
       return insertTopic(plan, label, sideFor(idx, plan.parentId, sibling));
+    },
+
+    /**
+     * Moves a topic (with its subtree) under `parentId`, before sibling `beforeId` or at
+     * the end. Also reorders within the same parent. On the root level, `side` picks the
+     * side (default: the topic's current side, or the shorter one). One undo step.
+     * @param {{beforeId?: string|null, side?: 'left'|'right'|null}} [options]
+     */
+    moveTopic(topicId, parentId, { beforeId = null, side = null } = {}) {
+      const idx = index();
+      requireTopic(idx, topicId);
+      requireTopic(idx, parentId);
+      const oldParent = getParent(idx, topicId);
+      if (oldParent == null) throw new Error(`Cannot move a central topic: ${topicId}`);
+      if (getSubtree(idx, topicId).topicIds.includes(parentId)) {
+        throw new Error(`Cannot move a topic into its own subtree: ${topicId}`);
+      }
+      const siblings = getChildren(idx, parentId).filter((id) => id !== topicId);
+      if (beforeId != null && !siblings.includes(beforeId)) {
+        throw new Error(`Not a child of ${parentId}: ${beforeId}`);
+      }
+      if (side != null && side !== 'left' && side !== 'right') {
+        throw new Error(`Unknown side: ${side}`);
+      }
+      const order = [...siblings];
+      order.splice(beforeId == null ? order.length : order.indexOf(beforeId), 0, topicId);
+
+      const toRoot = isRootStyle(idx.topics.get(parentId).style);
+      const cell = cellOf(topicId);
+      const parentCell = cellOf(parentId);
+      transaction(() => {
+        if (model.isCollapsed(parentCell)) graph.foldCells(false, false, [parentCell]);
+        if (oldParent !== parentId) {
+          model.setTerminal(cellOf(idx.parentOf.get(topicId).edgeId), parentCell, true);
+        }
+        order.forEach((id, i) => {
+          const c = cellOf(id);
+          const style = model.getStyle(c);
+          const next = setStyleValues(style, { [KEY_ORDER]: i });
+          if (next !== style) model.setStyle(c, next);
+        });
+        // Side and branch color only exist on the first level.
+        const values = toRoot
+          ? {
+              [KEY_SIDE]:
+                side ??
+                (oldParent === parentId ? getSide(model.getStyle(cell)) : null) ??
+                chooseSide(toLayoutTree(idx, parentId)),
+              ...(oldParent === parentId ? {} : { [KEY_BRANCH]: null }),
+            }
+          : { [KEY_SIDE]: null, [KEY_BRANCH]: null };
+        model.setStyle(cell, setStyleValues(model.getStyle(cell), values));
+      });
     },
 
     /** Deletes the topic and its subtree. Deleting a root deletes the whole map. */
