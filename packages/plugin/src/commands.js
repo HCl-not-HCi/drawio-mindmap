@@ -3,6 +3,8 @@
 // public window.mindmap API and (from M6) the LLM bridge all go through these.
 import { snapshot } from './graph-adapter.js';
 import { planConversion } from './convert.js';
+import { parseOutline, serializeOutline } from './io/index.js';
+import { fromTopicOutline } from './io/outline.js';
 import { chooseSide, DEFAULT_SPACING, MODES } from './layout.js';
 import { DIRECTIONS, navigate } from './navigation.js';
 import {
@@ -230,6 +232,73 @@ export function createCommands(graph) {
         }
       });
       return plan.rootId;
+    },
+
+    /**
+     * Inserts an outline ({label, children, side?, collapsed?}) in one step: as a new map
+     * (centre of the view, or x/y), or under `parentId` as its last child. Positions,
+     * sides, colors and sizes come from the layout. Returns the id of the outline's top.
+     * @param {{parentId?: string, x?: number, y?: number}} [options]
+     */
+    importOutline(outline, { parentId = null, x, y } = {}) {
+      const idx = parentId != null ? index() : null;
+      if (parentId != null) requireTopic(idx, parentId);
+      const toCollapse = [];
+      const insert = (n, parentCell, order, depth) => {
+        const label = String(n.label ?? '');
+        const geo = model.getGeometry(parentCell);
+        const side = depth === 1 && (n.side === 'left' || n.side === 'right') ? n.side : null;
+        const vertex = graph.insertVertex(
+          model.getParent(parentCell),
+          null,
+          textToHtml(label),
+          geo.x,
+          geo.y,
+          SIZES.topic.width,
+          SIZES.topic.height,
+          topicStyle(order, side),
+        );
+        graph.insertEdge(model.getParent(parentCell), null, '', parentCell, vertex, edgeStyle());
+        (n.children ?? []).forEach((c, i) => insert(c, vertex, i, depth + 1));
+        if (n.collapsed && (n.children ?? []).length > 0) toCollapse.push(vertex);
+        return vertex;
+      };
+      return transaction(() => {
+        let top;
+        if (parentId == null) {
+          top = cellOf(commands.createMindmap({ label: String(outline.label ?? ''), x, y }));
+          (outline.children ?? []).forEach((c, i) => insert(c, top, i, 1));
+          if (outline.collapsed && (outline.children ?? []).length > 0) toCollapse.push(top);
+        } else {
+          const parentCell = cellOf(parentId);
+          if (model.isCollapsed(parentCell)) graph.foldCells(false, false, [parentCell]);
+          const depth = isRootStyle(model.getStyle(parentCell)) ? 1 : 2;
+          const plan = planAddChild(idx, parentId, SIZES.topic);
+          top = insert(outline, parentCell, plan.order, depth);
+        }
+        if (toCollapse.length > 0) {
+          // draw.io only hides descendants of cells marked for tree folding; the layout
+          // would set this too, but only after this transaction.
+          for (const cell of toCollapse) {
+            model.setStyle(cell, setStyleValues(model.getStyle(cell), { treeFolding: 1 }));
+          }
+          graph.foldCells(true, false, toCollapse.reverse());
+        }
+        return top.id;
+      });
+    },
+
+    /**
+     * Imports Markdown, OPML or FreeMind text (format from `format`, the file name or the
+     * content) as a new map or under `parentId`. Returns the id of the imported top topic.
+     */
+    importText(text, { format, filename, parentId, x, y } = {}) {
+      return commands.importOutline(parseOutline(text, { format, filename }), { parentId, x, y });
+    },
+
+    /** The map containing `topicId` (default: the only map) as 'markdown', 'opml' or 'freemind'. */
+    exportMindmap(topicId, format = 'markdown') {
+      return serializeOutline(fromTopicOutline(commands.getMindmap(topicId)), format);
     },
 
     /** Deletes the topic and its subtree. Deleting a root deletes the whole map. */

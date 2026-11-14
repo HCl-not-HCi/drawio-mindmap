@@ -249,6 +249,9 @@ export function toOutline(index, id) {
       id: current,
       label: topic.label ?? '',
       ...(topic.collapsed === true && { collapsed: true }),
+      ...(getParent(index, current) != null &&
+        getParent(index, getParent(index, current)) == null &&
+        getSide(topic.style) != null && { side: getSide(topic.style) }),
       children: getChildren(index, current)
         .filter((c) => !seen.has(c))
         .map((c) => build(c, seen)),
