@@ -2,7 +2,7 @@
 import { EXTENSIONS, MIME_TYPES } from './io/outline.js';
 import { SPACING_PRESETS } from './layout.js';
 import { log } from './log.js';
-import { checkWebSocket } from './spike/ws-check.js';
+import { ACTION_LLM_TOGGLE, ACTION_LLM_TOKEN } from './bridge-ui.js';
 
 /* global mxResources, mxClient */
 
@@ -35,7 +35,6 @@ const safeFilename = (label) =>
     .trim()
     .slice(0, 80) || 'mindmap';
 export const ACTION_ABOUT = 'mindmapAbout';
-export const ACTION_WS_CHECK = 'mindmapWsCheck';
 export const MENU_NAME = 'mindmap';
 export const LAYOUT_MENU = 'mindmapLayout';
 
@@ -56,9 +55,9 @@ const sameSpacing = (a, b) => a.rootGap === b.rootGap && a.hGap === b.hGap && a.
 
 /**
  * @param {object} ui
- * @param {{version: string, debug: object, newMindmap: () => void, commands: object}} opts
+ * @param {{version: string, newMindmap: () => void, commands: object}} opts
  */
-export function registerActions(ui, { version, debug, newMindmap, commands }) {
+export function registerActions(ui, { version, newMindmap, commands }) {
   mxResources.parse(
     [
       `${MENU_NAME}=Mindmap`,
@@ -69,7 +68,6 @@ export function registerActions(ui, { version, debug, newMindmap, commands }) {
       `${EXPORT_MENU}=Export as`,
       ...Object.entries(EXPORT_ACTIONS).map(([name, { label }]) => `${name}=${label}`),
       `${ACTION_ABOUT}=About Mindmap...`,
-      `${ACTION_WS_CHECK}=Test WebSocket connection...`,
       ...Object.entries({ ...MODE_ACTIONS, ...SPACING_ACTIONS }).map(
         ([name, { label }]) => `${name}=${label}`,
       ),
@@ -107,13 +105,6 @@ export function registerActions(ui, { version, debug, newMindmap, commands }) {
 
   ui.actions.addAction(ACTION_ABOUT, () => {
     ui.alert(`draw.io Mindmap plugin ${version}`);
-  });
-
-  ui.actions.addAction(ACTION_WS_CHECK, async () => {
-    const result = await checkWebSocket();
-    debug.lastWsCheck = result;
-    (result.ok ? log.info : log.warn)('WebSocket check', result);
-    ui.alert(`WebSocket ${result.ok ? 'OK' : 'FAILED'}: ${result.url}\n${result.detail}`);
   });
 
   // Layout actions apply to the map of the selected topic, or the only map on the page.
@@ -200,7 +191,11 @@ export function registerMenus(ui) {
       ui.menus.addSubmenu(LAYOUT_MENU, menu, parent);
       ui.menus.addMenuItems(menu, ['-', ACTION_IMPORT], parent);
       ui.menus.addSubmenu(EXPORT_MENU, menu, parent);
-      ui.menus.addMenuItems(menu, ['-', ACTION_ABOUT, ACTION_WS_CHECK], parent);
+      ui.menus.addMenuItems(
+        menu,
+        ['-', ACTION_LLM_TOGGLE, ACTION_LLM_TOKEN, '-', ACTION_ABOUT],
+        parent,
+      );
     }),
   );
 
