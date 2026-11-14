@@ -1,4 +1,5 @@
 // Actions and the Extras → Mindmap submenu. All draw.io menu wiring lives here.
+import { EXTENSIONS, MIME_TYPES } from './io/outline.js';
 import { SPACING_PRESETS } from './layout.js';
 import { log } from './log.js';
 import { checkWebSocket } from './spike/ws-check.js';
@@ -7,6 +8,32 @@ import { checkWebSocket } from './spike/ws-check.js';
 
 export const ACTION_NEW = 'mindmapNew';
 export const ACTION_CONVERT = 'mindmapConvert';
+export const ACTION_IMPORT = 'mindmapImport';
+export const EXPORT_MENU = 'mindmapExport';
+const EXPORT_ACTIONS = {
+  mindmapExportMarkdown: { format: 'markdown', label: 'Markdown (.md)...' },
+  mindmapExportOpml: { format: 'opml', label: 'OPML (.opml)...' },
+  mindmapExportFreemind: { format: 'freemind', label: 'FreeMind (.mm)...' },
+};
+
+/** Offers text as a file download. */
+function download(filename, text, mime) {
+  const url = URL.createObjectURL(new Blob([text], { type: `${mime};charset=utf-8` }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const safeFilename = (label) =>
+  String(label)
+    .replace(/[\\/:*?"<>|\n\r]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80) || 'mindmap';
 export const ACTION_ABOUT = 'mindmapAbout';
 export const ACTION_WS_CHECK = 'mindmapWsCheck';
 export const MENU_NAME = 'mindmap';
@@ -38,6 +65,9 @@ export function registerActions(ui, { version, debug, newMindmap, commands }) {
       `${LAYOUT_MENU}=Layout`,
       `${ACTION_NEW}=New Mindmap`,
       `${ACTION_CONVERT}=Convert Selection to Mindmap`,
+      `${ACTION_IMPORT}=Import from File...`,
+      `${EXPORT_MENU}=Export as`,
+      ...Object.entries(EXPORT_ACTIONS).map(([name, { label }]) => `${name}=${label}`),
       `${ACTION_ABOUT}=About Mindmap...`,
       `${ACTION_WS_CHECK}=Test WebSocket connection...`,
       ...Object.entries({ ...MODE_ACTIONS, ...SPACING_ACTIONS }).map(
@@ -56,6 +86,23 @@ export function registerActions(ui, { version, debug, newMindmap, commands }) {
     } catch (e) {
       ui.alert(e.message);
     }
+  });
+
+  ui.actions.addAction(ACTION_IMPORT, () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.md,.markdown,.txt,.opml,.mm';
+    input.addEventListener('change', async () => {
+      const file = input.files?.[0];
+      if (file == null) return;
+      try {
+        const rootId = commands.importText(await file.text(), { filename: file.name });
+        commands.selectTopic(rootId);
+      } catch (e) {
+        ui.alert(`Import failed: ${e.message}`);
+      }
+    });
+    input.click();
   });
 
   ui.actions.addAction(ACTION_ABOUT, () => {
@@ -93,6 +140,20 @@ export function registerActions(ui, { version, debug, newMindmap, commands }) {
     return topic != null ? commands.getLayoutOptions(topic) : null;
   };
 
+  for (const [name, { format }] of Object.entries(EXPORT_ACTIONS)) {
+    ui.actions.addAction(
+      name,
+      withTarget((topic) => {
+        const label = commands.getMindmap(topic).label;
+        download(
+          `${safeFilename(label)}.${EXTENSIONS[format]}`,
+          commands.exportMindmap(topic, format),
+          MIME_TYPES[format],
+        );
+      }),
+    );
+  }
+
   for (const [name, { mode }] of Object.entries(MODE_ACTIONS)) {
     const action = ui.actions.addAction(
       name,
@@ -127,10 +188,18 @@ export function registerMenus(ui) {
     }),
   );
   ui.menus.put(
+    EXPORT_MENU,
+    new window.Menu((menu, parent) => {
+      ui.menus.addMenuItems(menu, Object.keys(EXPORT_ACTIONS), parent);
+    }),
+  );
+  ui.menus.put(
     MENU_NAME,
     new window.Menu((menu, parent) => {
       ui.menus.addMenuItems(menu, [ACTION_NEW, ACTION_CONVERT, '-'], parent);
       ui.menus.addSubmenu(LAYOUT_MENU, menu, parent);
+      ui.menus.addMenuItems(menu, ['-', ACTION_IMPORT], parent);
+      ui.menus.addSubmenu(EXPORT_MENU, menu, parent);
       ui.menus.addMenuItems(menu, ['-', ACTION_ABOUT, ACTION_WS_CHECK], parent);
     }),
   );

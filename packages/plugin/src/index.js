@@ -4,6 +4,7 @@ import { registerKeys, selectAndEdit } from './keys.js';
 import { registerListeners } from './listeners.js';
 import { log } from './log.js';
 import { registerActions, registerMenus } from './menu.js';
+import { registerPasteOutline } from './paste.js';
 import { checkWebSocket } from './spike/ws-check.js';
 
 /* global Draw, urlParams, __VERSION__, __DEV__ */
@@ -21,6 +22,7 @@ Draw.loadPlugin(function (ui) {
   registerMenus(ui);
   registerKeys(ui, commands, { newMindmap });
   registerListeners(ui, { stats: debug, commands });
+  registerPasteOutline(ui, commands);
 
   // Public API: selection-independent commands, one undo step each.
   // `spike` is the M0 WebSocket check, kept for e2e tests; removed in M6.
