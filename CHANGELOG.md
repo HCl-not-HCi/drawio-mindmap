@@ -2,6 +2,33 @@
 
 All notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## 1.0.0 – 2026-11-14
+
+### Added
+
+- **Branch colors and level styles:** each first-level branch gets its own color (topics and connectors), with distinct styles for the central topic, the first level and deeper levels. Colors adapt to draw.io's light and dark theme. Manual color changes are kept until a topic changes branch or level.
+- **Collapse / expand** with draw.io's +/- toggle or Ctrl+. (⌘.). Uses draw.io's own tree folding, so it also works without the plugin.
+- **Drag and drop:** drop a topic onto another to make it a child, among its siblings to reorder, or across the central topic to switch sides. Pasted branches can be attached by dropping them onto a topic.
+- **Side control:** Ctrl+←/→ (⌘←/→) moves a branch to the left or right side.
+- **Layout options** per map: both sides, right only, left only; compact, normal or wide spacing (Extras → Mindmap → Layout).
+- **Convert Selection to Mindmap:** adopts a hand-drawn tree of shapes and connectors.
+- API: `moveTopic`, `setSide`, `setCollapsed`, `toggleCollapsed`, `getLayoutOptions`, `setLayoutOptions`, `convertToMindmap`.
+
+### Changed
+
+- Arrow keys skip the children of collapsed topics.
+- Moving a topic slightly is now a reorder when it lands among its siblings (it used to snap back).
+
+### Fixed
+
+- Copying a branch without its central topic left unattached topics; they can now be dropped onto a topic.
+
+### Known limitations
+
+- Manual position and size changes to topics are reverted by the layout (by design). Several maps on one page are laid out independently and can overlap.
+- draw.io's Alt+Shift+Arrow ("clone and connect") on a topic creates a copy that isn't part of the tree.
+- draw.io Desktop is not supported.
+
 ## 0.1.0 – 2026-11-14
 
 First MVP release, for self-hosted draw.io (Docker image `jgraph/drawio:32.6.10`).
