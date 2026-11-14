@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildIndex,
+  getBranchTopic,
+  getLayoutOptions,
   getRootOf,
   getSubtree,
   isRootStyle,
@@ -242,5 +244,27 @@ describe('toLayoutTree', () => {
     const index = buildIndex(snapshot([{ id: 'r' }, { id: 'a', parent: 'r' }]));
     const tree = toLayoutTree(index, 'r', () => ({ width: 7, height: 9 }));
     expect(tree.children[0]).toMatchObject({ width: 7, height: 9 });
+  });
+});
+
+describe('layout options and branches', () => {
+  const defaults = { mode: 'balanced', spacing: { rootGap: 70, hGap: 50, vGap: 12 } };
+
+  it('reads layout options from the root style with fallbacks', () => {
+    expect(getLayoutOptions('mindmap=1;', defaults)).toEqual(defaults);
+    expect(getLayoutOptions('mmLayout=right;mmHGap=30;mmVGap=-1;mmRootGap=x;', defaults)).toEqual({
+      mode: 'right',
+      spacing: { rootGap: 70, hGap: 30, vGap: 12 },
+    });
+    expect(getLayoutOptions('mmLayout=diagonal;', defaults).mode).toBe('balanced');
+  });
+
+  it('finds the first-level ancestor of a topic', () => {
+    const index = buildIndex(
+      snapshot([{ id: 'r' }, { id: 'a', parent: 'r' }, { id: 'a1', parent: 'a' }]),
+    );
+    expect(getBranchTopic(index, 'a1')).toBe('a');
+    expect(getBranchTopic(index, 'a')).toBe('a');
+    expect(getBranchTopic(index, 'r')).toBeNull();
   });
 });

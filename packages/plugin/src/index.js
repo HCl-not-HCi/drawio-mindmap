@@ -17,7 +17,7 @@ Draw.loadPlugin(function (ui) {
 
   const newMindmap = () => selectAndEdit(graph, commands.createMindmap());
 
-  registerActions(ui, { version: VERSION, debug, newMindmap });
+  registerActions(ui, { version: VERSION, debug, newMindmap, commands });
   registerMenus(ui);
   registerKeys(ui, commands, { newMindmap });
   registerListeners(ui, { stats: debug });

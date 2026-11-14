@@ -2,14 +2,21 @@
 // single model transaction, so it is exactly one undo step. Keyboard shortcuts, the
 // public window.mindmap API and (from M6) the LLM bridge all go through these.
 import { snapshot } from './graph-adapter.js';
-import { chooseSide } from './layout.js';
+import { chooseSide, DEFAULT_SPACING, MODES } from './layout.js';
 import { DIRECTIONS, navigate } from './navigation.js';
 import {
   buildIndex,
+  getBranchTopic,
   getChildren,
+  getLayoutOptions,
   getParent,
   getSide,
   isRootStyle,
+  KEY_H_GAP,
+  KEY_LAYOUT,
+  KEY_ROOT_GAP,
+  KEY_SIDE,
+  KEY_V_GAP,
   getRootOf,
   getSubtree,
   isTopicStyle,
@@ -179,6 +186,55 @@ export function createCommands(graph) {
       );
       const anyExpanded = foldable.some((id) => !model.isCollapsed(cellOf(id)));
       commands.setCollapsed(foldable, anyExpanded);
+    },
+
+    /**
+     * Moves the first-level branches containing the given topic(s) to a side of the map,
+     * in one step. Returns the branch topic ids (roots are skipped).
+     * @param {string | string[]} topicIds
+     */
+    setSide(topicIds, side) {
+      if (side !== 'left' && side !== 'right') throw new Error(`Unknown side: ${side}`);
+      const idx = index();
+      const ids = Array.isArray(topicIds) ? topicIds : [topicIds];
+      const branches = [...new Set(ids.map((id) => getBranchTopic(idx, id)))].filter(Boolean);
+      transaction(() => {
+        for (const branch of branches) {
+          const cell = cellOf(branch);
+          model.setStyle(cell, setStyleValues(model.getStyle(cell), { [KEY_SIDE]: side }));
+        }
+      });
+      return branches;
+    },
+
+    /** Layout options of the map containing `topicId`: {mode, spacing}. */
+    getLayoutOptions(topicId) {
+      const idx = index();
+      const rootId = getRootOf(idx, topicId);
+      return getLayoutOptions(idx.topics.get(rootId).style, {
+        mode: 'balanced',
+        spacing: DEFAULT_SPACING,
+      });
+    },
+
+    /**
+     * Sets layout options of the map containing `topicId` (stored on its root topic).
+     * @param {{mode?: 'balanced'|'right'|'left', spacing?: {rootGap?, hGap?, vGap?}}} options
+     */
+    setLayoutOptions(topicId, { mode, spacing = {} } = {}) {
+      if (mode != null && !MODES.includes(mode)) throw new Error(`Unknown layout mode: ${mode}`);
+      for (const [k, v] of Object.entries(spacing)) {
+        if (!(k in DEFAULT_SPACING) || !Number.isFinite(v) || v < 0) {
+          throw new Error(`Invalid spacing: ${k}=${v}`);
+        }
+      }
+      const rootCell = cellOf(getRootOf(index(), topicId));
+      const values = {};
+      if (mode != null) values[KEY_LAYOUT] = mode === 'balanced' ? null : mode;
+      if (spacing.rootGap != null) values[KEY_ROOT_GAP] = spacing.rootGap;
+      if (spacing.hGap != null) values[KEY_H_GAP] = spacing.hGap;
+      if (spacing.vGap != null) values[KEY_V_GAP] = spacing.vGap;
+      transaction(() => model.setStyle(rootCell, setStyleValues(model.getStyle(rootCell), values)));
     },
 
     /** Neighbouring topic in a direction ('left' | 'right' | 'up' | 'down'), or null. */

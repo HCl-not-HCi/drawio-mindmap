@@ -188,3 +188,30 @@ describe('layoutTree', () => {
     expect(performance.now() - start).toBeLessThan(200);
   });
 });
+
+describe('layout modes', () => {
+  const tree = node('r', [
+    node('a', [node('a1')], { side: LEFT }),
+    node('b', [], { side: RIGHT }),
+    node('c'),
+  ]);
+
+  it('puts every branch on one side in right/left mode, ignoring own sides', () => {
+    for (const mode of [RIGHT, LEFT]) {
+      const { positions, sides } = layoutTree(tree, S, mode);
+      expect([...sides.values()]).toEqual([mode, mode, mode]);
+      for (const id of ['a', 'a1', 'b', 'c']) {
+        if (mode === RIGHT) expect(positions.get(id).x).toBeGreaterThan(100);
+        else expect(positions.get(id).x).toBeLessThan(0);
+      }
+    }
+  });
+
+  it('uses the given spacing', () => {
+    const wide = { rootGap: 100, hGap: 70, vGap: 20 };
+    const { positions: p } = layoutTree(node('r', [node('a', [node('a1'), node('a2')])]), wide);
+    expect(p.get('a').x).toBe(200);
+    expect(p.get('a1').x).toBe(370);
+    expect(p.get('a2').y - p.get('a1').y).toBe(50);
+  });
+});

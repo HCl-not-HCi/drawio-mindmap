@@ -7,6 +7,7 @@ import { DEFAULT_SPACING, layoutTree } from './layout.js';
 import {
   buildIndex,
   getChildren,
+  getLayoutOptions,
   getSide,
   isRootStyle,
   KEY_SIDE,
@@ -54,7 +55,7 @@ function measureFittedSize(graph, cell) {
  * Lays out all mindmaps on the current page. Must run inside a model transaction
  * (it opens its own nested one). Returns the number of changed cells.
  */
-export function applyLayout(graph, spacing = DEFAULT_SPACING) {
+export function applyLayout(graph, defaults = { mode: 'balanced', spacing: DEFAULT_SPACING }) {
   const model = graph.getModel();
   const index = buildIndex(snapshot(graph));
   let changed = 0;
@@ -109,7 +110,8 @@ export function applyLayout(graph, spacing = DEFAULT_SPACING) {
 
     for (const rootId of index.roots) {
       const tree = toLayoutTree(index, rootId, (id) => sizes.get(id));
-      const { positions, sides } = layoutTree(tree, spacing);
+      const { mode, spacing } = getLayoutOptions(index.topics.get(rootId).style, defaults);
+      const { positions, sides } = layoutTree(tree, spacing, mode);
       const rootGeo = index.topics.get(rootId).geometry;
       for (const [id, pos] of positions) {
         const { width, height } = sizes.get(id);
@@ -118,7 +120,9 @@ export function applyLayout(graph, spacing = DEFAULT_SPACING) {
         const y = id === rootId ? rootGeo.y : rootGeo.y + pos.y;
         setGeometry(model.getCell(id), x, y, width, height);
       }
-      for (const [id, side] of sides) {
+      // Persist sides only in balanced mode: one-sided modes must not overwrite them, so
+      // switching back to balanced restores the previous arrangement.
+      for (const [id, side] of mode === 'balanced' ? sides : []) {
         if (getSide(index.topics.get(id).style) !== side) {
           setStyle(model.getCell(id), { [KEY_SIDE]: side });
         }

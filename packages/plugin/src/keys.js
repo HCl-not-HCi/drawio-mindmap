@@ -78,6 +78,11 @@ export function registerKeys(ui, commands, actions) {
     if (evt.keyCode === KEY.PERIOD && mod.ctrl && !mod.alt && !mod.shift) {
       return run(() => commands.toggleCollapsed(ids));
     }
+    const ctrlArrow = { 37: 'left', 39: 'right' }[evt.keyCode];
+    if (ctrlArrow != null && mod.ctrl && !mod.alt && !mod.shift) {
+      // Ctrl+Left/Right (Cmd on macOS): move the selected branches to that side.
+      return run(() => commands.setSide(ids, ctrlArrow));
+    }
     if (mod.ctrl || mod.alt || mod.shift) return null;
 
     const direction = ARROWS[evt.keyCode];

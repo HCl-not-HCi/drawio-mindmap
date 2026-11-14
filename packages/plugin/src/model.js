@@ -12,6 +12,11 @@ export const KEY_ROLE = 'mmRole';
 export const KEY_ORDER = 'mmOrder';
 export const KEY_EDGE = 'mmEdge';
 export const KEY_SIDE = 'mmSide';
+// Per-map layout options, stored on the root topic (decisions D17).
+export const KEY_LAYOUT = 'mmLayout';
+export const KEY_ROOT_GAP = 'mmRootGap';
+export const KEY_H_GAP = 'mmHGap';
+export const KEY_V_GAP = 'mmVGap';
 export const ROLE_ROOT = 'root';
 export const ROLE_TOPIC = 'topic';
 
@@ -166,6 +171,40 @@ export function planAddSibling(index, topicId, size) {
     reorder,
     position: { x: g.x, y: subtreeBottom(index, topicId) + PLACEMENT.vGap },
   };
+}
+
+/**
+ * Layout options of a map from its root style; missing or invalid values fall back to
+ * `defaults` ({mode, spacing: {rootGap, hGap, vGap}}).
+ */
+export function getLayoutOptions(rootStyle, defaults) {
+  const num = (key, fallback) => {
+    const n = Number.parseFloat(getStyleValue(rootStyle, key));
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  };
+  const mode = getStyleValue(rootStyle, KEY_LAYOUT);
+  return {
+    mode: ['balanced', 'left', 'right'].includes(mode) ? mode : defaults.mode,
+    spacing: {
+      rootGap: num(KEY_ROOT_GAP, defaults.spacing.rootGap),
+      hGap: num(KEY_H_GAP, defaults.spacing.hGap),
+      vGap: num(KEY_V_GAP, defaults.spacing.vGap),
+    },
+  };
+}
+
+/** First-level ancestor of a topic (the topic itself on the first level), null for roots. */
+export function getBranchTopic(index, id) {
+  requireTopic(index, id);
+  let current = id;
+  const seen = new Set([id]);
+  for (let p = getParent(index, current); p != null; p = getParent(index, p)) {
+    if (getParent(index, p) == null) return current;
+    if (seen.has(p)) return null;
+    seen.add(p);
+    current = p;
+  }
+  return null;
 }
 
 export function getSide(style) {

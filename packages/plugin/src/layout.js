@@ -19,6 +19,16 @@ export const DEFAULT_SPACING = {
 export const LEFT = 'left';
 export const RIGHT = 'right';
 
+/** Layout modes: both sides (default), or every branch on one side. */
+export const MODES = ['balanced', RIGHT, LEFT];
+
+/** Spacing presets offered in the menu; any values can be set per map. */
+export const SPACING_PRESETS = {
+  compact: { rootGap: 50, hGap: 30, vGap: 6 },
+  normal: DEFAULT_SPACING,
+  wide: { rootGap: 100, hGap: 70, vGap: 20 },
+};
+
 const visibleChildren = (node) => (node.collapsed ? [] : (node.children ?? []));
 
 /** Height of every subtree block, keyed by node id. */
@@ -72,9 +82,16 @@ export function chooseSide(root, spacing = DEFAULT_SPACING) {
   return total[LEFT] < total[RIGHT] ? LEFT : RIGHT;
 }
 
-export function layoutTree(root, spacing = DEFAULT_SPACING) {
+/**
+ * @param {'balanced'|'right'|'left'} [mode] one-sided modes put every branch on that side;
+ *   the returned `sides` then reflect the mode, not the topics' own sides.
+ */
+export function layoutTree(root, spacing = DEFAULT_SPACING, mode = 'balanced') {
   const heights = measure(root, spacing);
-  const sides = assignSides(root, heights, spacing);
+  const sides =
+    mode === LEFT || mode === RIGHT
+      ? new Map(visibleChildren(root).map((c) => [c.id, mode]))
+      : assignSides(root, heights, spacing);
   const positions = new Map([[root.id, { x: 0, y: 0 }]]);
 
   // Places `node`'s subtree block with its top at `top`; `x` is the node's own left edge.
