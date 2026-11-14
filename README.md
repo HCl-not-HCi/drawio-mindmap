@@ -2,7 +2,7 @@
 
 A draw.io plugin for fast, keyboard-driven mind mapping. Mindmaps stay normal draw.io diagrams that open and render without the plugin.
 
-Status: **M1 (core editing)**. Mind maps can be created and edited with the keyboard. There is no automatic layout yet (M2). See [docs/PLAN.md](docs/PLAN.md) for the plan and [docs/decisions.md](docs/decisions.md) for decisions made along the way.
+Status: **M2 (layout)**. Mind maps can be created and edited with the keyboard and are laid out automatically on both sides of the central topic. See [docs/PLAN.md](docs/PLAN.md) for the plan and [docs/decisions.md](docs/decisions.md) for decisions made along the way.
 
 ## Pinned versions
 
@@ -24,7 +24,7 @@ Status: **M1 (core editing)**. Mind maps can be created and edited with the keyb
 | Enter / Esc while editing | Finish editing (Shift+Enter: line break)                      |
 | Tab while editing         | Finish editing and add a child                                |
 
-The keys only change behavior when mindmap topics are selected; everywhere else draw.io works as usual. Every action is one undo step. Details: [D7](docs/decisions.md).
+The keys only change behavior when mindmap topics are selected; everywhere else draw.io works as usual. Every action, including the re-layout it causes, is one undo step. The layout always wins: dragged topics snap back, and dragging the central topic moves the whole map. Details: [D7, D11](docs/decisions.md).
 
 From the browser console, `window.mindmap` offers the same commands by topic id (see [D8](docs/decisions.md)), e.g. `mindmap.addChild(mindmap.listMindmaps()[0].id, 'Idea')`.
 

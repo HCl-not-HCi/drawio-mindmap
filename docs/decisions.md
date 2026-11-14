@@ -71,3 +71,28 @@ Refines the MVP keyboard list in PLAN §2:
 ## D9 – Placement until the layout exists (M1)
 
 Without M2's layout, a new child goes to the right of its parent, below the lowest topic of the last sibling subtree. A new sibling goes below the subtree of the topic it follows. Siblings inserted in the middle can overlap topics further down; M2 replaces this placement.
+
+**Superseded by M2 (D11):** the layout now runs in the same transaction, so this placement is only the starting point before the layout pass.
+
+## D10 – Own layout instead of mxCompactTreeLayout (M2)
+
+The plan left this open for M2. **Decision:** own layout in `src/layout.js`. It is a pure function (unit-tested without a browser, including a property test that random trees never overlap), balances the two sides itself, and keeps full control over spacing. `mxCompactTreeLayout` would need to run once per side with the sides split and mirrored by hand anyway.
+
+The algorithm is a block layout (as in XMind): each subtree is a vertical block, children stack with `vGap` between their blocks, the parent is centred on its children, and children sit `hGap` beyond the parent's outer edge. Unlike Reingold–Tilford it doesn't pack a deep branch under a shallow neighbour, which keeps the shape stable while typing. Spacing defaults: `rootGap` 70, `hGap` 50, `vGap` 12 (per-diagram settings in v1.0).
+
+## D11 – Automatic re-layout in the same undo step (M2)
+
+- The layout runs on the model's `BEFORE_UNDO` event, at the end of the outermost transaction but before the edit reaches the undo manager. Its changes join that edit, so any change (command, typed label, manual drag) and the layout it causes are **one undo step**. draw.io's `mxLayoutManager` uses the same mechanism.
+- It runs when the edit touches a topic or tree edge (added, removed, moved, resized, relabelled or restyled). Edits that replace the model root (opening a file, switching pages) never trigger it, so **viewing a diagram doesn't modify it**; a hand-placed map is laid out on its first edit.
+- **Layout wins:** a dragged or resized topic snaps back. The **root is the anchor**: moving it moves the whole map.
+- The layout also persists `mmSide` on first-level topics that lack it, sets the curved connector style on tree edges and removes waypoints from them.
+
+## D12 – Topic sizes and sides (M2)
+
+- Topics are sized to their label: root 120–280 px wide, topics 60–220 px; longer labels wrap and the topic grows in height. Sizes are measured with `graph.getPreferredSizeForCell` and cached by style + label (measuring dominated layout time).
+- A new first-level topic gets a fixed `mmSide` when it's created: the side of the sibling it was added after (Enter), otherwise the currently shorter side (Tab on the root). Branches never jump sides as the map grows; moving a branch is the v1.0 side control.
+- Connectors: `edgeStyle=entityRelationEdgeStyle;curved=1;segment=10`. This style leaves and enters topics on their left/right side facing each other, so one style works on both sides of the map. The default stub length (~30 px) made curves loop within the gap, hence `segment=10`.
+
+## D13 – Performance baseline (M2)
+
+On a ~310-topic map in the dev container (headless Chromium): adding a topic takes about 45 ms median end to end, of which the layout pass is about 25 ms. Every change re-lays out all maps on the page. If this becomes a problem, re-layout only the affected map or side (PLAN §8).
