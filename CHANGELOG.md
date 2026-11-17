@@ -2,6 +2,12 @@
 
 All notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## 1.2.0 – 2026-11-17
+
+### Changed
+
+- The plugin loads by default: `?p=mindmap` is no longer needed, so plain bookmarks and draw.io installed as a browser app work. `?mindmap=0` opens draw.io without the plugin. Update `PostConfig.js` on your server (D24).
+
 ## 1.1.0 – 2026-11-17
 
 ### Added

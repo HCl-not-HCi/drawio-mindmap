@@ -2,7 +2,7 @@
 
 A draw.io plugin for fast, keyboard-driven mind mapping. Mindmaps stay normal draw.io diagrams that open and render without the plugin.
 
-Status: **v1.1.0**. Create mind maps, edit and navigate them with the keyboard, collapse branches, rearrange them by drag and drop, convert hand-drawn trees, import and export outlines, and let an LLM edit the open map live. Maps are laid out automatically and colored per branch. See [CHANGELOG.md](CHANGELOG.md) for what's in each release and the known limitations. See [docs/PLAN.md](docs/PLAN.md) for the plan and [docs/decisions.md](docs/decisions.md) for decisions made along the way.
+Status: **v1.2.0**. Create mind maps, edit and navigate them with the keyboard, collapse branches, rearrange them by drag and drop, convert hand-drawn trees, import and export outlines, and let an LLM edit the open map live. Maps are laid out automatically and colored per branch. See [CHANGELOG.md](CHANGELOG.md) for what's in each release and the known limitations. See [docs/PLAN.md](docs/PLAN.md) for the plan and [docs/decisions.md](docs/decisions.md) for decisions made along the way.
 
 ## Pinned versions
 
@@ -95,7 +95,7 @@ Requirements: Docker and VS Code with the _Dev Containers_ extension.
 3. In your browser on the host, open <http://localhost:8080/>. The plugin loads by default; no Plugins-dialog setup is needed (D2, D24). Don't add `?offline=1`: draw.io skips plugins in offline mode (D3).
 4. After each rebuild, reload the tab. Keep DevTools open with **Network → Disable cache** checked.
 
-The console shows `[mindmap] loaded v1.1.0 (dev build)`. In dev builds, `window.mindmapDebug` exposes the EditorUi and graph.
+The console shows `[mindmap] loaded v1.2.0 (dev build)`. In dev builds, `window.mindmapDebug` exposes the EditorUi and graph.
 
 ## Development without the dev container
 
