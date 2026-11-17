@@ -8,10 +8,17 @@ window.ICON_SERVICE_PATH = null;
 
 // --- drawio-mindmap ---------------------------------------------------------
 // Everything above is the unchanged PostConfig.js from jgraph/drawio:32.6.10.
-// Registers the plugin under the id "mindmap", so it loads with
-// http://localhost:8080/?p=mindmap and counts as a built-in plugin (no
-// ALLOW_CUSTOM_PLUGINS needed). Re-copy the original part when bumping the
-// image version. See docs/decisions.md (D2).
+// Registers the plugin under the id "mindmap", so it counts as a built-in
+// plugin (no ALLOW_CUSTOM_PLUGINS needed), and loads it by default by adding
+// it to the "p" URL parameter, which App.main reads after this file runs.
+// ?mindmap=0 opens draw.io without it. Re-copy the original part when bumping
+// the image version. See docs/decisions.md (D2, D24).
 if (typeof App !== 'undefined' && App.pluginRegistry != null) {
   App.pluginRegistry.mindmap = 'plugins/custom/mindmap.js';
+  if (typeof urlParams !== 'undefined' && urlParams.mindmap !== '0') {
+    var mindmapPlugins = urlParams.p ? urlParams.p.split(';') : [];
+    if (mindmapPlugins.indexOf('mindmap') < 0) {
+      urlParams.p = mindmapPlugins.concat('mindmap').join(';');
+    }
+  }
 }

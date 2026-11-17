@@ -21,6 +21,8 @@ Findings for `jgraph/drawio:32.6.10`:
 
 **On image bumps:** compare the image's `PostConfig.js` with ours and copy over any changes; the e2e suite fails if the registry hook stops working.
 
+> **Changed in v1.2.0:** `?p=mindmap` is no longer needed; `PostConfig.js` adds it by default (D24).
+
 ## D3 – Don't use `?offline=1` (M0)
 
 draw.io skips plugin loading entirely when `offline=1` is set, so the URL in PLAN §4 (`http://localhost:8080/?offline=1`) never loads the plugin. Use `http://localhost:8080/?p=mindmap` instead (D2). The image already disables the cloud storage integrations (Google Drive, OneDrive, Dropbox, GitHub, Trello) and real-time sync in `PreConfig.js`.
@@ -177,3 +179,12 @@ Claude Desktop starts the MCP server more than once (for chats and separately fo
 - **Failover:** when the hub process exits, its relays race (with jitter) to take over the port; the winner becomes the hub, the others relay through it, and draw.io windows reconnect on their own.
 - **Security:** relays need the token, like windows. A relay must be a local non-browser process (no `Origin` header); a window must come from an allowed origin. So a web page can't pose as a relay, and a local process can't pose as a window. If the port belongs to something else (or a hub with a different token), the process keeps retrying and its tools answer "Reconnecting…".
 - An MCP server started inside the dev container and one on the host are in different network namespaces; they don't share a hub unless the container's port is forwarded to the host first. Use one place to run MCP clients.
+
+## D24 – Load the plugin by default (v1.2.0)
+
+Needing `?p=mindmap` in every URL was easy to miss: a plain bookmark or a browser-installed app (whose start URL comes from draw.io's manifest) opened draw.io without the plugin.
+
+- **Decision:** `PostConfig.js` also adds `mindmap` to `urlParams.p` unless it is already listed. `App.main` reads `urlParams.p` after `PostConfig.js` has run, so the plugin loads through the same registry entry as before (D2), and other plugins in `?p=` still load.
+- **Opt-out:** `?mindmap=0` leaves `p` alone and opens plain draw.io, e.g. to check that a map renders without the plugin (e2e).
+- `?p=mindmap` keeps working and doesn't load the plugin twice (e2e). `?offline=1` still skips all plugins (D3).
+- The server setup no longer needs its own web app manifest with `?p=mindmap` in the start URL.

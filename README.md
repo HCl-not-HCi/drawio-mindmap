@@ -76,8 +76,8 @@ The plugin runs on self-hosted draw.io (the `jgraph/drawio` Docker image). app.d
 
 1. Download `mindmap.js` from the release (or run `npm run build` → `packages/plugin/dist/mindmap.js`).
 2. Mount it into the container at `/usr/local/tomcat/webapps/draw/plugins/custom/mindmap.js`.
-3. Mount [`docker/drawio/PostConfig.js`](docker/drawio/PostConfig.js) at `/usr/local/tomcat/webapps/draw/js/PostConfig.js`. It registers the plugin under the id `mindmap` (D2). It is a copy of the image's own file plus three lines; re-copy it when you change the image version.
-4. Open draw.io with `?p=mindmap`, e.g. `https://drawio.example.com/?p=mindmap`, and bookmark that URL. Without the parameter, draw.io runs without the plugin.
+3. Mount [`docker/drawio/PostConfig.js`](docker/drawio/PostConfig.js) at `/usr/local/tomcat/webapps/draw/js/PostConfig.js`. It registers the plugin under the id `mindmap` and loads it by default (D2, D24). It is a copy of the image's own file plus a few lines; re-copy it when you change the image version.
+4. Open draw.io, e.g. `https://drawio.example.com/`. The plugin loads by default; `?mindmap=0` opens draw.io without it.
 
 [`docker-compose.yml`](docker-compose.yml) is a working example (it also sets the CSP that live LLM control needs, see below).
 
@@ -92,7 +92,7 @@ Requirements: Docker and VS Code with the _Dev Containers_ extension.
    The first start runs `npm ci` and installs Playwright's Chromium.
 
 2. In the container terminal: `npm run watch` (rebuilds `packages/plugin/dist/mindmap.js` on every save, with source maps).
-3. In your browser on the host, open <http://localhost:8080/?p=mindmap> (bookmark it). `p=mindmap` loads the plugin; no Plugins-dialog setup is needed (D2). Don't add `?offline=1`: draw.io skips plugins in offline mode (D3).
+3. In your browser on the host, open <http://localhost:8080/>. The plugin loads by default; no Plugins-dialog setup is needed (D2, D24). Don't add `?offline=1`: draw.io skips plugins in offline mode (D3).
 4. After each rebuild, reload the tab. Keep DevTools open with **Network → Disable cache** checked.
 
 The console shows `[mindmap] loaded v1.1.0 (dev build)`. In dev builds, `window.mindmapDebug` exposes the EditorUi and graph.
@@ -124,7 +124,7 @@ Then continue with step 3 above. Rebuild once before `drawio:up` so `dist/` exis
 ## How the Docker setup loads the plugin
 
 - `packages/plugin/dist` is mounted at `plugins/custom/` in the draw.io web app.
-- `docker/drawio/PostConfig.js` registers the plugin under the id `mindmap`, so `?p=mindmap` loads it (D2). Restart the container after editing that file.
+- `docker/drawio/PostConfig.js` registers the plugin under the id `mindmap` and adds it to the `p` URL parameter, so it loads by default (D2, D24). `?mindmap=0` opens draw.io without it. Restart the container after editing that file.
 - `DRAWIO_CSP_HEADER` adds `ws://127.0.0.1:47100` to the CSP so the plugin can reach the MCP server's bridge (D4, D22).
 
 ## Project layout

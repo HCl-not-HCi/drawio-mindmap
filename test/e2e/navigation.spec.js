@@ -90,11 +90,11 @@ test('copy and paste of a whole map gives a second, independent map', async ({ d
 
 test('a saved mindmap opens and renders in draw.io without the plugin', async ({ page }) => {
   const xml = readFileSync(new URL('../../samples/basic.drawio', import.meta.url), 'utf8');
-  // Load draw.io without ?p=mindmap and open the sample through a #R (raw) hash.
-  await page.goto('/?splash=0');
+  // ?mindmap=0 opens plain draw.io (D24); open the sample through a #R (raw) hash.
+  await page.goto('/?splash=0&mindmap=0');
   await page.waitForFunction(() => typeof window.Graph?.compress === 'function');
   const hash = await page.evaluate((x) => encodeURIComponent(window.Graph.compress(x)), xml);
-  await page.goto(`/?splash=0#R${hash}`);
+  await page.goto(`/?splash=0&mindmap=0#R${hash}`);
 
   const canvas = page.locator('.geDiagramContainer svg');
   for (const label of ['Trip planning', 'Packing', 'Sleeping bag', 'Day 2: Mountains']) {

@@ -1,7 +1,7 @@
 import { test as base, expect } from '@playwright/test';
 
-// Opens draw.io the way developers do (README): ?p=mindmap loads the plugin through the
-// registry entry in docker/drawio/PostConfig.js. Waits until the plugin has loaded.
+// Opens draw.io the way users do: docker/drawio/PostConfig.js registers the plugin and loads
+// it by default, without ?p=mindmap (D24). Waits until the plugin has loaded.
 export const test = base.extend({
   drawio: async ({ page }, use) => {
     const consoleMessages = [];
@@ -9,7 +9,7 @@ export const test = base.extend({
     page.on('pageerror', (err) => consoleMessages.push({ type: 'pageerror', text: err.message }));
 
     // No offline=1: draw.io skips all plugins in offline mode (docs/decisions.md D3).
-    await page.goto('/?p=mindmap&splash=0&mindmapDebug=1');
+    await page.goto('/?splash=0&mindmapDebug=1');
     await page.waitForFunction(() => window.mindmap?.version, null, { timeout: 30_000 });
     // The plugin loads before draw.io opens the blank diagram; keys are lost until then.
     await page.waitForFunction(() => window.mindmapDebug?.ui.getCurrentFile() != null);

@@ -1,5 +1,5 @@
 # Local draw.io for development and e2e tests.
-#   docker compose up -d drawio   → http://localhost:8080/?p=mindmap
+#   docker compose up -d drawio   → http://localhost:8080/ (loads the plugin by default)
 # The dev container (.devcontainer/) extends this file; see README.
 services:
   drawio:
@@ -23,7 +23,7 @@ services:
     volumes:
       # Whole folder, so rebuilds that replace the file are picked up.
       - ./packages/plugin/dist:/usr/local/tomcat/webapps/draw/plugins/custom:ro
-      # Registers the plugin as "mindmap" (load with ?p=mindmap); see docs/decisions.md D2.
+      # Registers the plugin as "mindmap" and loads it by default; see docs/decisions.md D2, D24.
       # Single-file mount: restart the container after editing it.
       - ./docker/drawio/PostConfig.js:/usr/local/tomcat/webapps/draw/js/PostConfig.js:ro
     healthcheck:
